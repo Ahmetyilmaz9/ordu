@@ -17,6 +17,10 @@ public class UnitDefinition : ScriptableObject
     public float walkSpeed = 2.5f;
     public float runSpeed = 4.5f;
 
+    [Header("Formasyon")]
+    public float formationChangeTime = 4.5f;   // geçiş süresi (sn)
+    public float transitionSpeedFactor = 0.4f; // geçiş sırasında hız çarpanı
+
     [Header("Görsel")]
     public Mesh soldierMesh;
     public Material soldierMaterial; // GPU instancing açık olmalı

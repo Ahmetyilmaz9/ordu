@@ -94,21 +94,43 @@ public static class OrduMenu
     [MenuItem("Ordu/Test/Slot Matematiği")]
     static void TestFormation()
     {
-        // 20 genişlik × 5 saf, 1.5 m aralık
+        const FormationType Line = FormationType.Line;
+        // Hat: 20 genişlik × 5 saf, 1.5 m aralık
         Check(Formation.RankCount(100, 20) == 5, "100 asker / 20 genişlik = 5 saf");
         Check(Formation.RankCount(101, 20) == 6, "yarım son saf da sayılır");
-        Check(Approx(Formation.SlotLocalOffset(0, 20, 100, 1.5f), new Vector3(-14.25f, 0f, 3f)), "slot 0 = ön saf, sol kanat");
-        Check(Approx(Formation.SlotLocalOffset(99, 20, 100, 1.5f), new Vector3(14.25f, 0f, -3f)), "slot 99 = arka saf, sağ kanat");
+        Check(Approx(Formation.SlotLocalOffset(Line, 0, 20, 100, 1.5f), new Vector3(-14.25f, 0f, 3f)), "slot 0 = ön saf, sol kanat");
+        Check(Approx(Formation.SlotLocalOffset(Line, 99, 20, 100, 1.5f), new Vector3(14.25f, 0f, -3f)), "slot 99 = arka saf, sağ kanat");
 
         Vector3 sum = Vector3.zero;
-        for (int i = 0; i < 100; i++) sum += Formation.SlotLocalOffset(i, 20, 100, 1.5f);
-        Check(sum.magnitude < 0.01f, "dolu formasyon merkezlenmiş");
+        for (int i = 0; i < 100; i++) sum += Formation.SlotLocalOffset(Line, i, 20, 100, 1.5f);
+        Check(sum.magnitude < 0.01f, "dolu hat merkezlenmiş");
 
         // Uçtaki askerin hızı = ω × r_max = koşu hızı
-        float omega = Formation.MaxTurnRate(4.5f, 20, 100, 1.5f);
-        float edgeSpeed = omega * Formation.HalfExtents(20, 100, 1.5f).magnitude;
-        Check(Mathf.Abs(edgeSpeed - 4.5f) < 0.001f, $"uçtaki asker koşu hızında döner ({edgeSpeed:F3})");
-        Check(Formation.MaxTurnRate(4.5f, 40, 200, 1.5f) < omega, "geniş hat daha yavaş döner");
+        Formation.HalfExtents(Line, 20, 100, 1.5f, out float r20);
+        Formation.HalfExtents(Line, 40, 200, 1.5f, out float r40);
+        float omega = Formation.MaxTurnRate(4.5f, r20);
+        Check(Mathf.Abs(omega * r20 - 4.5f) < 0.001f, $"uçtaki asker koşu hızında döner ({omega * r20:F3})");
+        Check(Formation.MaxTurnRate(4.5f, r40) < omega, "geniş hat daha yavaş döner");
+
+        // Diğer tipler
+        Check(Formation.EffectiveWidth(FormationType.Column, 20, 100) == Formation.ColumnWidth, "kolon dar");
+        Check(Formation.EffectiveWidth(FormationType.Square, 20, 100) == 10, "100 askerlik kare 10×10");
+        Check(Mathf.Abs(Formation.SlotLocalOffset(FormationType.Wedge, 0, 20, 100, 1.5f).x) < 1e-4f, "kamanın ucu ortada");
+        Check(Formation.SlotLocalOffset(FormationType.Wedge, 0, 20, 100, 1.5f).z >
+              Formation.SlotLocalOffset(FormationType.Wedge, 1, 20, 100, 1.5f).z, "kamanın ucu önde");
+
+        // Hiçbir tipte iki asker aynı slota düşmesin
+        foreach (FormationType type in System.Enum.GetValues(typeof(FormationType)))
+        foreach (int count in new[] { 50, 100, 101, 200 })
+        {
+            var seen = new System.Collections.Generic.HashSet<Vector2Int>();
+            for (int i = 0; i < count; i++)
+            {
+                Vector3 o = Formation.SlotLocalOffset(type, i, 20, count, 1f) * 2f; // yarım-slot ofsetleri tamsayıya
+                seen.Add(new Vector2Int(Mathf.RoundToInt(o.x), Mathf.RoundToInt(o.z)));
+            }
+            Check(seen.Count == count, $"{type} {count}: slotlar benzersiz");
+        }
 
         Debug.Log("[Ordu] Slot matematiği testleri bitti.");
     }

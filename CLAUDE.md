@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M1 tamamlandı (2026-10-27). Sıradaki: M2 — formasyon.
+**Durum:** M2 tamamlandı (2026-10-27). Sıradaki: M3 — temas ve savaş.
 
 ---
 
@@ -340,8 +340,15 @@ istemciden verilen emir sunucuya ulaşıp sonuç geri replike oluyor.
 > Simülasyon SADECE sunucuda koşmalı — `IsServer` kontrolü unutulursa sessiz
 > desync olur ve bulması işkencedir.
 
-### M2 — Formasyon
+### M2 — Formasyon ✅
 Formasyon tipleri, süreli geçiş, sağ tıkı sürükleyerek hem konum hem yön verme.
+
+> **Yapıldı ve test edildi.** Kontroller: **1–4** Hat/Kolon/Kare/Kama ·
+> **sağ tık** git (varışta yön değişmez) · **sağ tık sürükle** hat çiz: konum + yön +
+> genişlik (çoklu seçimde çizgi bölüklere eşit bölünür). Şekil/genişlik değişince
+> `formationChangeTime` (4,5 sn) boyunca hız × `transitionSpeedFactor` (0,4); bitiş
+> zamanı sunucu saatiyle replike (`TransitionEndTime`). Görsel geçiş bedava: askerler
+> yeni slotlarına yürür. Kestirme: kare dolu (içi boş kare M3'te).
 
 ### M3 — Temas ve savaş
 Bölük-vs-bölük çarpışma çözümü, temas cephesi, kanat çarpanı, tekil asker ölümü

@@ -71,8 +71,9 @@ public class BattalionView : MonoBehaviour
 
         labelStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
         GUI.color = Selected ? Color.white : TeamColor;
-        string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.SoldierCount.Value}";
-        GUI.Label(new Rect(screen.x - 80f, Screen.height - screen.y - 12f, 160f, 24f), text, labelStyle);
+        string formation = Formation.DisplayName(battalion.Type.Value) + (battalion.IsTransitioning ? " (diziliyor…)" : "");
+        string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.SoldierCount.Value}\n{formation}";
+        GUI.Label(new Rect(screen.x - 90f, Screen.height - screen.y - 20f, 180f, 40f), text, labelStyle);
         GUI.color = Color.white;
     }
 }
