@@ -321,6 +321,11 @@ Host modu yok. Başka hiçbir şey yok.
 > editörde MPPM ana editör = sunucu, sanal oyuncular `-name Player2..4` → istemci).
 > Sahne ve build'ler elle değil menüden: **Ordu → Savaş Sahnesini Kur**, **Ordu → Build → ...**
 > M0 test küpü M1'de kaldırıldı.
+> **Gerçek build testi (2026-10-28):** `OrduServer.exe -bot` + `Ordu.exe` ile tam maç oynandı.
+> Sunucu headless'ta 60 FPS ile sınırlı (sınırsızken bir çekirdeği yer; böyle ~%6).
+> İstemci başka makineye `Ordu.exe -ip <sunucu IP>` ile bağlanır (UnityTransport argümanı
+> kendisi okur; denenmedi). Uyarı: build alırken MPPM sanal oyuncuları kapalı olsun —
+> açıkken istemci build'i shader derlemesinde kilitlendi.
 
 ### M1 — Bölük hareketi ✅
 `Battalion : NetworkBehaviour` — replike transform, sol tık seç / sağ tık hareket

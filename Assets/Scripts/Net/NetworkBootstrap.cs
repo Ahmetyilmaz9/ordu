@@ -16,6 +16,8 @@ public class NetworkBootstrap : MonoBehaviour
 
         if (IsServerRole())
         {
+            // Headless sunucu kare sınırı olmadan çekirdeği %100 yer; simülasyon için 60 yeter.
+            if (Application.isBatchMode) Application.targetFrameRate = 60;
             transport.SetConnectionData(serverAddress, port, "0.0.0.0");
             nm.StartServer();
         }
