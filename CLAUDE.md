@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M0 tamamlandı (2026-10-27). Sıradaki: M1 — bölük hareketi.
+**Durum:** M1 tamamlandı (2026-10-27). Sıradaki: M2 — formasyon.
 
 ---
 
@@ -319,15 +319,22 @@ Host modu yok. Başka hiçbir şey yok.
 
 > **Yapıldı:** `NetworkBootstrap` rolü kendisi seçer (dedicated build / `-server` → sunucu;
 > editörde MPPM ana editör = sunucu, sanal oyuncular `-name Player2..4` → istemci).
-> Sahne ve build'ler elle değil menüden: **Ordu → M0 Sahnesini Kur**, **Ordu → Build → ...**
-> Test: Play → ana editör `SUNUCU | bağlı istemci: 2`, sanal oyuncular `İSTEMCİ`, küp hepsinde dönüyor.
+> Sahne ve build'ler elle değil menüden: **Ordu → Savaş Sahnesini Kur**, **Ordu → Build → ...**
+> M0 test küpü M1'de kaldırıldı.
 
-### M1 — Bölük hareketi *(ilk kodlama hedefi)*
+### M1 — Bölük hareketi ✅
 `Battalion : NetworkBehaviour` — replike transform, sol tık seç / sağ tık hareket
 ettir (ServerRpc), slot matematiği, debug küreleri (`RenderMeshInstanced`, GameObject
 değil), formasyondan türeyen dönüş hızı, bölük etiketi (ikon + sayı).
 **Başarı kriteri:** iki pencerede de 100 küre formasyonu koruyarak ilerliyor;
 istemciden verilen emir sunucuya ulaşıp sonuç geri replike oluyor.
+
+> **Yapıldı ve test edildi.** Dosyalar: `Formation` (slot matematiği + dönüş
+> hızı, saf statik), `Battalion` (ağ + sunucu simülasyonu, `MoveRpc` sahiplik kontrolü),
+> `BattalionView` (instanced küreler + OnGUI etiket), `CommandInput` (seç/emir),
+> `BattalionSpawner` (bağlanan oyuncuya 2 bölük), `UnitDefinition` (`Test_Piyade`, 100 asker).
+> Kestirmeler: düz çizgi hareket (NavMesh engel gelince), etikette ikon yerine metin.
+> Testler: **Ordu → Test → Slot Matematiği**.
 
 > Seçim istemci tarafı bir kavramdır, replike edilmez. Sunucuya sadece emir gider.
 > Simülasyon SADECE sunucuda koşmalı — `IsServer` kontrolü unutulursa sessiz
