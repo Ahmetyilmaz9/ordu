@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** Tasarım tamamlandı (2026-10-27 gözden geçirme kararları işlendi), kodlama başlamadı.
+**Durum:** M0 tamamlandı (2026-10-27). Sıradaki: M1 — bölük hareketi.
 
 ---
 
@@ -311,11 +311,16 @@ eklemek, bu tür oyunlarda "baştan yazmak" demektir.
 **Altın kural 2: görselle başlama.** İlk milestone'larda askerler küre/kapsül,
 bölükler renkli dikdörtgen. Asker modeli aramaya başlamak en yaygın tuzak.
 
-### M0 — Ağ boru hattı
+### M0 — Ağ boru hattı ✅
 Unity 6 + URP projesi, NGO kurulumu, Dedicated Server build target,
 **Multiplayer Play Mode** paketi (editörde 1 sunucu + 2 istemci tek Play ile).
 İki istemci **dedicated sunucuya** bağlanıyor ve sunucudaki bir küpün hareketini görüyor.
 Host modu yok. Başka hiçbir şey yok.
+
+> **Yapıldı:** `NetworkBootstrap` rolü kendisi seçer (dedicated build / `-server` → sunucu;
+> editörde MPPM ana editör = sunucu, sanal oyuncular `-name Player2..4` → istemci).
+> Sahne ve build'ler elle değil menüden: **Ordu → M0 Sahnesini Kur**, **Ordu → Build → ...**
+> Test: Play → ana editör `SUNUCU | bağlı istemci: 2`, sanal oyuncular `İSTEMCİ`, küp hepsinde dönüyor.
 
 ### M1 — Bölük hareketi *(ilk kodlama hedefi)*
 `Battalion : NetworkBehaviour` — replike transform, sol tık seç / sağ tık hareket
