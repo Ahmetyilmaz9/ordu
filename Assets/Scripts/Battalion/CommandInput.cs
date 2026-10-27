@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 // İstemci tarafı: seçim replike edilmez, sunucuya sadece emir gider.
 // Sol tık seç (Shift ile ekle). Sağ tık: tıkla = git, sürükle = hat çiz (konum + yön + genişlik).
-// 1-4: Hat / Kolon / Kare / Kama.
+// 1-4: Hat / Kolon / Kare / Kama. R: koş/yürü (koşarak temas = şarj).
 public class CommandInput : MonoBehaviour
 {
     const float MinDragLength = 3f;
@@ -38,6 +38,12 @@ public class CommandInput : MonoBehaviour
             foreach (var (key, type) in FormationKeys)
                 if (keyboard[key].wasPressedThisFrame)
                     foreach (var b in selected) b.SetFormationRpc(type);
+
+        if (keyboard != null && keyboard.rKey.wasPressedThisFrame && selected.Count > 0)
+        {
+            bool run = !selected[0].Running.Value; // ilk seçilene göre aç/kapa, hepsi aynı olsun
+            foreach (var b in selected) b.SetRunRpc(run);
+        }
 
         HandleMoveOrder(cam, mouse);
     }

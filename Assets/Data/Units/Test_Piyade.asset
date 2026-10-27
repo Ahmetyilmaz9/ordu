@@ -20,6 +20,14 @@ MonoBehaviour:
   slotSpacing: 1.5
   walkSpeed: 2.5
   runSpeed: 4.5
+  formationChangeTime: 4.5
+  transitionSpeedFactor: 0.4
+  attack: 10
+  defense: 10
+  chargeImpact: 0.05
+  antiChargeFront: 0
+  staminaDrainPerSec: 0.025
+  staminaRegenPerSec: 0.016666668
   soldierMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   soldierMaterial: {fileID: 2100000, guid: e5504917ab477384fa6785d7cc7af122, type: 2}
   soldierScale: 0.8

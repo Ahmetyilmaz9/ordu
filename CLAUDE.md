@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M2 tamamlandı (2026-10-27). Sıradaki: M3 — temas ve savaş.
+**Durum:** M3 tamamlandı (2026-10-27). Sıradaki: M4 — moral.
 
 ---
 
@@ -350,10 +350,21 @@ Formasyon tipleri, süreli geçiş, sağ tıkı sürükleyerek hem konum hem yö
 > zamanı sunucu saatiyle replike (`TransitionEndTime`). Görsel geçiş bedava: askerler
 > yeni slotlarına yürür. Kestirme: kare dolu (içi boş kare M3'te).
 
-### M3 — Temas ve savaş
+### M3 — Temas ve savaş ✅
 Bölük-vs-bölük çarpışma çözümü, temas cephesi, kanat çarpanı, tekil asker ölümü
 (yöne göre indeks seçimi + bit maskesi senkronu), hıza bağlı şarj + yorgunluk.
 **Basit bot:** sunucuda, oyuncuyla aynı emir yolundan "en yakın düşmana yürü-saldır".
+
+> **Yapıldı ve test edildi.** `Combat/`: `AliveMask` (256 bit), `CombatMath` (saf:
+> dikdörtgen teması, vurulan kenar, temas cephesi, yöne göre ölüm, kanat/arka çarpanı),
+> `CombatSystem` (sunucu: temas → kayıp/sn = cephedeki asker × lethality × saldırı/savunma ×
+> yorgunluk × kenar çarpanı × geçiş cezası; temasın ilk karesinde şarj darbesi = asker × hız ×
+> `chargeImpact`, kargı önden `antiChargeFront` oranında geri yansıtır), `BotCommander`.
+> Temasta düşmanın içine yürünemez, geri çekilmek serbest. Kontroller: **R** koş/yürü.
+> Bot: **Ordu → Bota Karşı Oyna** (build'de `-bot`). Testler: **Ordu → Test → Savaş Matematiği**.
+> Dokümandan sapma: ölümde indeks deltası değil, maskenin tamamı (32 byte) replike edilir —
+> sis/geç bağlanma aynı yoldan çözülür; bant genişliği sorun olursa deltaya geçilir.
+> Kestirme: kare görselde dolu ama savaşta her yön cephe.
 
 ### M4 — Moral
 Sarsılma, rout, toparlanma (düşen moral tavanı), sancaktar, zafer koşulu + 15 dk süre,

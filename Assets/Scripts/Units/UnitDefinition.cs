@@ -21,6 +21,17 @@ public class UnitDefinition : ScriptableObject
     public float formationChangeTime = 4.5f;   // geçiş süresi (sn)
     public float transitionSpeedFactor = 0.4f; // geçiş sırasında hız çarpanı
 
+    [Header("Savaş")]
+    public float attack = 10f;
+    public float defense = 10f;
+    public float chargeImpact = 0.05f;   // temas anında: cephedeki asker × hız (m/sn) × bu = öldürme
+    [Range(0f, 1f)]
+    public float antiChargeFront = 0f;   // önden şarjın bu oranı saldırana geri döner (kargı)
+
+    [Header("Yorgunluk (0-1 / sn)")]
+    public float staminaDrainPerSec = 1f / 40f; // tam yorgunluğa 40 sn koşu
+    public float staminaRegenPerSec = 1f / 60f;
+
     [Header("Görsel")]
     public Mesh soldierMesh;
     public Material soldierMaterial; // GPU instancing açık olmalı

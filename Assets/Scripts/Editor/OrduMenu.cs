@@ -46,6 +46,8 @@ public static class OrduMenu
         nmGo.AddComponent<NetworkBootstrap>();
         Set(nmGo.AddComponent<BattalionSpawner>(), "battalionPrefab", prefab.GetComponent<Battalion>());
         nmGo.AddComponent<CommandInput>();
+        nmGo.AddComponent<CombatSystem>();
+        nmGo.AddComponent<BotCommander>();
 
         EditorSceneManager.SaveScene(scene);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
@@ -89,6 +91,70 @@ public static class OrduMenu
         }
         AssetDatabase.SaveAssets();
         return prefab;
+    }
+
+    const string VsBotMenu = "Ordu/Bota Karşı Oyna";
+
+    [MenuItem(VsBotMenu)]
+    static void ToggleVsBot()
+    {
+        bool on = !EditorPrefs.GetBool(BattalionSpawner.VsBotPref, false);
+        EditorPrefs.SetBool(BattalionSpawner.VsBotPref, on);
+        Debug.Log(on ? "[Ordu] Bot modu AÇIK: oyuncular takım 0, takım 1 bot." : "[Ordu] Bot modu KAPALI.");
+    }
+
+    [MenuItem(VsBotMenu, true)]
+    static bool ToggleVsBotValidate()
+    {
+        Menu.SetChecked(VsBotMenu, EditorPrefs.GetBool(BattalionSpawner.VsBotPref, false));
+        return true;
+    }
+
+    [MenuItem("Ordu/Test/Savaş Matematiği")]
+    static void TestCombat()
+    {
+        // Hayatta maskesi
+        var mask = AliveMask.Full(200);
+        Check(mask.Count == 200 && mask.Get(199) && !mask.Get(200), "maske: 200 asker hayatta, 201. yok");
+        mask.Set(64, false);
+        Check(mask.Count == 199 && !mask.Get(64) && mask.Get(63) && mask.Get(65), "maske: kelime sınırında tek ölüm");
+
+        // Dikdörtgenler: A merkezde kuzeye bakıyor (30×6), B önünde 5 m'de
+        var a = new Obb(Vector3.zero, Vector3.right, Vector3.forward, new Vector2(15f, 3f));
+        var bFront = new Obb(new Vector3(0f, 0f, 6.5f), Vector3.right, Vector3.back, new Vector2(15f, 3f));
+        var bFar = new Obb(new Vector3(0f, 0f, 20f), Vector3.right, Vector3.back, new Vector2(15f, 3f));
+        Check(CombatMath.Overlaps(a, bFront, 1f), "0,5 m boşluk: temas var");
+        Check(!CombatMath.Overlaps(a, bFar, 1f), "14 m boşluk: temas yok");
+
+        Check(CombatMath.SideOf(a, new Vector2(0f, 10f)) == HitSide.Front, "önden gelen: cephe");
+        Check(CombatMath.SideOf(a, new Vector2(0f, -10f)) == HitSide.Rear, "arkadan gelen: arka");
+        Check(CombatMath.SideOf(a, new Vector2(-20f, 0f)) == HitSide.Left, "soldan gelen: sol kanat");
+        Check(CombatMath.SideOf(a, new Vector2(14f, 5f)) == HitSide.Front, "geniş hattın ucuna önden gelen: cephe");
+
+        // Temas cephesi: 10 m genişliğinde düşman 30 m'lik hattın önünde -> ~10 m temas
+        var narrow = new Obb(new Vector3(5f, 0f, 6.5f), Vector3.right, Vector3.back, new Vector2(5f, 3f));
+        float len = CombatMath.ContactLength(a, narrow, HitSide.Front, out float center);
+        Check(Mathf.Abs(len - 10f) < 0.01f && Mathf.Abs(center - 5f) < 0.01f, $"dar düşman: temas 10 m, merkez x=5 ({len:F1}, {center:F1})");
+
+        // Yöne göre ölüm (hat 20×5, 1.5 m): cepheden vurulursa ön saf, temas noktasına en yakın
+        var full = AliveMask.Full(100);
+        int front = CombatMath.PickCasualty(FormationType.Line, 20, 100, 1.5f, full, HitSide.Front, 14.25f);
+        Check(front == 19, $"cephe, sağ uçta temas: ön safın sağ ucu ölür ({front})");
+        int left = CombatMath.PickCasualty(FormationType.Line, 20, 100, 1.5f, full, HitSide.Left, 0f);
+        Check(left % 20 == 0, $"sol kanat: sol sıradan biri ölür ({left})");
+        int rear = CombatMath.PickCasualty(FormationType.Line, 20, 100, 1.5f, full, HitSide.Rear, 0f);
+        Check(rear >= 80, $"arka: arka saftan biri ölür ({rear})");
+
+        var onlyOne = new AliveMask();
+        onlyOne.Set(57, true);
+        Check(CombatMath.PickCasualty(FormationType.Line, 20, 100, 1.5f, onlyOne, HitSide.Front, 0f) == 57, "tek hayatta kalan seçilir");
+        Check(CombatMath.PickCasualty(FormationType.Line, 20, 100, 1.5f, new AliveMask(), HitSide.Front, 0f) == -1, "kimse yoksa -1");
+
+        Check(CombatMath.SideMultiplier(HitSide.Rear, FormationType.Line) > CombatMath.SideMultiplier(HitSide.Left, FormationType.Line)
+              && CombatMath.SideMultiplier(HitSide.Left, FormationType.Line) > 1f, "arka > kanat > cephe");
+        Check(CombatMath.SideMultiplier(HitSide.Rear, FormationType.Square) == 1f, "karenin arkası yok");
+
+        Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
     }
 
     [MenuItem("Ordu/Test/Slot Matematiği")]

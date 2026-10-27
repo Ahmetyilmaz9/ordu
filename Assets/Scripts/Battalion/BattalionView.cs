@@ -44,11 +44,14 @@ public class BattalionView : MonoBehaviour
         float maxStep = def.runSpeed * 1.5f * Time.deltaTime;
         Vector3 up = Vector3.up * def.soldierScale * 0.5f;
         Vector3 scale = Vector3.one * def.soldierScale;
+        var alive = battalion.Alive.Value;
+        int drawn = 0;
         for (int i = 0; i < count; i++)
         {
             positions[i] = Vector3.MoveTowards(positions[i], battalion.SlotWorldPosition(i), maxStep);
-            matrices[i] = Matrix4x4.TRS(positions[i] + up, Quaternion.identity, scale);
+            if (alive.Get(i)) matrices[drawn++] = Matrix4x4.TRS(positions[i] + up, Quaternion.identity, scale);
         }
+        if (drawn == 0) return; // ölüm efekti ("poof") M8'de
 
         props.SetColor(BaseColorId, Selected ? Color.Lerp(TeamColor, Color.white, 0.45f) : TeamColor);
         var rp = new RenderParams(def.soldierMaterial)
@@ -57,7 +60,7 @@ public class BattalionView : MonoBehaviour
             worldBounds = new Bounds(transform.position, Vector3.one * (Battalion.MapHalfSize * 2f)),
         };
         // shortcut: RenderMeshInstanced çağrı başına 1023 instance sınırlı; 200'lük bölükler için yeterli.
-        Graphics.RenderMeshInstanced(rp, def.soldierMesh, 0, matrices, count);
+        Graphics.RenderMeshInstanced(rp, def.soldierMesh, 0, matrices, drawn);
     }
 
     // M1 etiketi: tip adı + asker sayısı, takım rengi. İkon M4 ile birlikte.
@@ -72,8 +75,10 @@ public class BattalionView : MonoBehaviour
         labelStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
         GUI.color = Selected ? Color.white : TeamColor;
         string formation = Formation.DisplayName(battalion.Type.Value) + (battalion.IsTransitioning ? " (diziliyor…)" : "");
-        string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.SoldierCount.Value}\n{formation}";
-        GUI.Label(new Rect(screen.x - 90f, Screen.height - screen.y - 20f, 180f, 40f), text, labelStyle);
+        string state = (battalion.InCombat.Value ? "⚔ " : "") + (battalion.Running.Value ? "koşu " : "")
+                       + $"yorgunluk %{100 - battalion.StaminaPercent.Value}";
+        string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.AliveCount}\n{formation}\n{state}";
+        GUI.Label(new Rect(screen.x - 90f, Screen.height - screen.y - 30f, 180f, 60f), text, labelStyle);
         GUI.color = Color.white;
     }
 }

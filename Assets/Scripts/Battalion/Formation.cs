@@ -22,7 +22,7 @@ public static class Formation
     public static int EffectiveWidth(FormationType type, int lineWidth, int count) => type switch
     {
         FormationType.Column => Mathf.Min(ColumnWidth, count),
-        // shortcut: dolu kare; içi boş, dört yöne bakan kare M3'te kanat/arka çarpanıyla birlikte.
+        // shortcut: kare görselde dolu; savaşta her yön cephe sayılır (CombatMath.SideMultiplier). İçi boş görsel M8'de.
         FormationType.Square => Mathf.CeilToInt(Mathf.Sqrt(count)),
         _ => Mathf.Clamp(lineWidth, 1, count),
     };
