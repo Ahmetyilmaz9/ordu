@@ -244,6 +244,14 @@ public static class OrduMenu
         var rows = ArmyRules.Layout(new[] { 100f, 100f }, 150f);
         Check(rows[0].y == 0 && rows[1].y == 1 && Mathf.Abs(rows[1].x) < 0.01f, "sığmayan bir sıra geriye, ortalı");
 
+        // Sunucu adresi (istemcinin IP kutusu)
+        Check(NetworkBootstrap.TryParseEndpoint("192.168.1.20", 7777, out var ip, out var port) && ip == "192.168.1.20" && port == 7777, "IP, varsayılan port");
+        Check(NetworkBootstrap.TryParseEndpoint(" 85.10.1.2:9000 ", 7777, out ip, out port) && ip == "85.10.1.2" && port == 9000, "IP:port, boşluklar kırpılır");
+        Check(!NetworkBootstrap.TryParseEndpoint("oyun.example.com", 7777, out _, out _), "alan adı reddedilir (transport çözmez)");
+        Check(!NetworkBootstrap.TryParseEndpoint("1.2.3", 7777, out _, out _), "eksik IP reddedilir");
+        Check(!NetworkBootstrap.TryParseEndpoint("1.2.3.4:0", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("1.2.3.4:99999", 7777, out _, out _), "geçersiz port reddedilir");
+        Check(!NetworkBootstrap.TryParseEndpoint("", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("::1", 7777, out _, out _), "boş ve IPv6 reddedilir");
+
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
     }
 
@@ -315,21 +323,35 @@ public static class OrduMenu
     static void BuildClient() =>
         Build("Builds/Client/Ordu.exe", (int)StandaloneBuildSubtarget.Player);
 
-    static void Build(string path, int subtarget)
+    // VPS ve Edgegap Linux istiyor. Unity Hub: "Linux Dedicated Server Build Support" modülü.
+    [MenuItem("Ordu/Build/Dedicated Server (Linux)")]
+    static void BuildLinuxServer() =>
+        Build("Builds/LinuxServer/OrduServer.x86_64", (int)StandaloneBuildSubtarget.Server, BuildTarget.StandaloneLinux64);
+
+    static void Build(string path, int subtarget, BuildTarget target = BuildTarget.StandaloneWindows64)
     {
+        // BuildPlayer editörün aktif platformunu değiştirir; geri almazsak MPPM sanal oyuncuları
+        // sunucu platformunda açılır. Build bitince eski platforma dön.
+        var previousTarget = EditorUserBuildSettings.activeBuildTarget;
+        var previousSubtarget = EditorUserBuildSettings.standaloneBuildSubtarget;
+
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
             scenes = new[] { ScenePath },
             locationPathName = path,
-            target = BuildTarget.StandaloneWindows64,
+            target = target,
             subtarget = subtarget,
         });
+
+        EditorUserBuildSettings.standaloneBuildSubtarget = previousSubtarget;
+        if (EditorUserBuildSettings.activeBuildTarget != previousTarget)
+            EditorUserBuildSettings.SwitchActiveBuildTarget(BuildPipeline.GetBuildTargetGroup(previousTarget), previousTarget);
 
         if (report.summary.result == BuildResult.Succeeded)
             Debug.Log($"[Ordu] Build hazır: {path}");
         else
             Debug.LogError($"[Ordu] Build başarısız ({report.summary.result}). " +
-                           "Server için Unity Hub'da 'Windows Dedicated Server Build Support' modülü kurulu olmalı.");
+                           "Server için Unity Hub'da ilgili 'Dedicated Server Build Support' modülü kurulu olmalı.");
     }
 
     static void Check(bool ok, string what)

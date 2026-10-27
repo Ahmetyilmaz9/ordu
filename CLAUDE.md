@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M6a tamamlandı (2026-10-28). Sıradaki: M6b — eşleştirme + barındırma (önce karar).
+**Durum:** M6 tamamlandı (2026-10-28). Sıradaki: M7 — savaş sisi.
 
 ---
 
@@ -221,8 +221,12 @@ Neden: Relay+host modelinde oyunculardan biri sunucudur — düşmanın tüm ver
 RAM'inde, sis o oyuncuyu hiç korumaz (bellekten maphack). Üstüne host'un emirleri 0 ms,
 misafirinki ping kadar gecikir; 1v1 rekabette adaletsiz.
 
-Barındırma (kendi VPS / yönetilen servis) **M6'da** kararlaştırılır. Public IP'li
-sunucuda Relay gereksiz; Lobby eşleştirme için kalabilir.
+**Barındırma kararı (2026-10-28):** Unity'nin Multiplay barındırması **Mart 2026'da kapandı**
+(Lobby/Relay/Matchmaker/NGO çalışmaya devam ediyor). Şimdilik **IP ile bağlanma** (oyun içi
+kutu, `-ip`); genel teste geçerken **Edgegap** (yönetilen, kullandıkça öde; Linux + Docker,
+NGO rehberi var; eşleştirme ~22 $/ay ya da UGS Matchmaker). B planı: kendi VPS (Hetzner ~4–5 €/ay)
++ maç başına sunucu süreci açan küçük başlatıcı. Bir maç sunucusu ~%6 çekirdek, ~1 KB/sn/istemci.
+Dedicated sunucuda Relay gereksiz.
 
 ### Render stratejisi
 - **URP** (HDRP değil) — stilize tarza uygun, düşük sistem gereksinimi hedefiyle uyumlu
@@ -410,7 +414,7 @@ saldırana döner) ve `Sipahi` (50, koşu 9 m/sn, `chargeImpact` 0,15, seyrek di
 Mekanikler M3'ten hazırdı. Her oyuncu 5 bölükle doğar (aralık 38 m, kargılı en dışta).
 > **Yapıldı ve test edildi:** sipahi okçuyu ezer, kargılıya önden çarpan sipahi erir.
 
-### M6 — Ordu kurma ekranı + eşleştirme
+### M6 — Ordu kurma ekranı + eşleştirme ✅
 Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → savaş.
 10 slot, birim seçimi, Lobby ile eşleştirme, dedicated sunucu barındırma kararı.
 
@@ -422,7 +426,13 @@ Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → sav
 > emirler bölge içinde anında konumlar, dizilim geçişi süresiz. Savaş/bot sadece Battle fazında.
 > `MatchUI` (IMGUI): ordu paneli, yerde bölge çizgisi, Hazır, saat, sonuç. Kestirmeler: 3. oyuncu
 > izleyici, kopan oyuncunun takımı boşalmaz (yeniden bağlanma M6b), IMGUI arayüz.
-> **M6b (eşleştirme + barındırma)** ayrı: önce barındırma ve UGS hesabı kararı gerekiyor.
+> **M6b — yapıldı ve test edildi** (build'de kutudan 127.0.0.1 ile bağlanıldı). Karar: şimdilik IP ile bağlanma (bkz. "Sunucu modeli").
+> İstemci: editörde ve `-ip` ile kendiliğinden bağlanır, yoksa IP kutusu (IP ya da IP:port,
+> son adres hatırlanır); bağlantı kurulamazsa/koparsa kutu geri gelir. **Ordu → Build →
+> Dedicated Server (Linux)**. Dışarıdan bağlanmak için sunucuda 7777/UDP açık olmalı.
+> Tuzak (çözüldü): `BuildPlayer` aktif platformu değiştirir; Linux sunucu build'inden sonra MPPM
+> sanal oyuncuları sunucu platformunda açılıp 7777 için çakıştı. Build menüsü artık eski platforma
+> döner, editörde rol tespiti `UNITY_SERVER`'a bakmaz. Linux build Unity'ye toolchain paketleri ekledi.
 
 ### M7 — Savaş sisi
 Per-client görünürlük (`NetworkShow` / `NetworkHide`).
