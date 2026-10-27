@@ -49,7 +49,16 @@ public static class OrduMenu
         nmGo.AddComponent<CombatSystem>();
         nmGo.AddComponent<BotCommander>();
 
+        // Maç saati ve zafer: sahneye yerleşik NetworkObject (NetworkManager objesine konamaz).
+        var match = new GameObject("Match");
+        match.AddComponent<NetworkObject>();
+        match.AddComponent<MatchManager>();
+
         EditorSceneManager.SaveScene(scene);
+        // Yeniden açınca sahne içi NetworkObject kimliği (GlobalObjectIdHash) kesin üretilir.
+        EditorSceneManager.OpenScene(ScenePath);
+        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+        EditorSceneManager.SaveOpenScenes();
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         Debug.Log("[Ordu] Savaş sahnesi kuruldu: " + ScenePath);
     }
@@ -153,6 +162,27 @@ public static class OrduMenu
         Check(CombatMath.SideMultiplier(HitSide.Rear, FormationType.Line) > CombatMath.SideMultiplier(HitSide.Left, FormationType.Line)
               && CombatMath.SideMultiplier(HitSide.Left, FormationType.Line) > 1f, "arka > kanat > cephe");
         Check(CombatMath.SideMultiplier(HitSide.Rear, FormationType.Square) == 1f, "karenin arkası yok");
+
+        // Moral
+        Check(Morale.Evaluate(MoraleState.Steady, 50f) == MoraleState.Steady, "moral 50: sağlam");
+        Check(Morale.Evaluate(MoraleState.Steady, 30f) == MoraleState.Shaken, "moral 30: sarsıldı");
+        Check(Morale.Evaluate(MoraleState.Shaken, 5f) == MoraleState.Routing, "moral 5: kaçış");
+        Check(Morale.Evaluate(MoraleState.Routing, 30f) == MoraleState.Routing, "kaçan, 30'da hâlâ kaçıyor (eşik 45)");
+        Check(Morale.Evaluate(MoraleState.Routing, 50f) == MoraleState.Shaken, "kaçan, 45 üstünde toparlanır");
+        Check(100f - 3 * Morale.CeilingDropPerRout < Morale.RallyAbove
+              && 100f - 2 * Morale.CeilingDropPerRout >= Morale.RallyAbove, "ikinci kaçıştan dönülür, üçüncüden dönülmez");
+        Check(Mathf.Abs(Morale.CasualtyLoss(100) * 100 - Morale.CasualtyWeight) < 0.01f, "bölüğün tamamı = CasualtyWeight moral");
+        Check(Morale.SidePressurePerSec(HitSide.Rear, FormationType.Line) > Morale.SidePressurePerSec(HitSide.Left, FormationType.Line)
+              && Morale.SidePressurePerSec(HitSide.Front, FormationType.Line) == 0f
+              && Morale.SidePressurePerSec(HitSide.Rear, FormationType.Square) == 0f, "moral baskısı: arka > kanat, cephe/kare 0");
+        Check(Morale.AttackFactor(MoraleState.Routing) == 0f, "kaçan dövüşmez");
+
+        // Zafer
+        Check(MatchRules.Decide(true, true, 100, 50, false) == MatchManager.NoWinner, "süre varken iki taraf da sahada: devam");
+        Check(MatchRules.Decide(true, false, 10, 0, false) == 0, "kırmızının bölüğü kalmadı: mavi kazanır");
+        Check(MatchRules.Decide(false, true, 0, 10, false) == 1, "mavinin bölüğü kalmadı: kırmızı kazanır");
+        Check(MatchRules.Decide(true, true, 80, 120, true) == 1, "süre doldu: çok askeri kalan kazanır");
+        Check(MatchRules.Decide(true, true, 50, 50, true) == MatchManager.Draw, "süre doldu, eşit: berabere");
 
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
     }

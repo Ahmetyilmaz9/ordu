@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M3 tamamlandı (2026-10-27). Sıradaki: M4 — moral.
+**Durum:** M4 tamamlandı (2026-10-27) — oyun oynanabilir. Sıradaki: M5 — menzilli birimler.
 
 ---
 
@@ -366,11 +366,21 @@ Bölük-vs-bölük çarpışma çözümü, temas cephesi, kanat çarpanı, tekil
 > sis/geç bağlanma aynı yoldan çözülür; bant genişliği sorun olursa deltaya geçilir.
 > Kestirme: kare görselde dolu ama savaşta her yön cephe.
 
-### M4 — Moral
+### M4 — Moral ✅
 Sarsılma, rout, toparlanma (düşen moral tavanı), sancaktar, zafer koşulu + 15 dk süre,
 etikette moral çubuğu. **M4 bittiğinde oyun oynanabilir demektir.**
 Sonrasında: grafiksiz bot-vs-bot denge testi (yüzlerce maç, `UnitDefinition` ayarı),
 Tabur cengi ve Mehter kararları.
+
+> **Yapıldı ve test edildi.** `Combat/Morale` (saf kurallar + sabitler),
+> `Combat/MatchManager` (sahneye yerleşik `Match` objesi: saat + zafer, `MatchRules` saf).
+> Moral 0–100: kayıp (bölüğün tamamı = 150), kanat 4/sn, arka 8/sn (kare ve cephe 0),
+> yakında dost kaçarsa −15, sancaktar ilk düşüşte −25, yorgunken savaşta −2/sn;
+> `discipline` kayıpları böler. <40 sarsıldı (saldırı ×0,75), <10 kaçış (emir yok, saldırı 0,
+> en yakın kenara koşar, kenarda sahadan çıkar). Kaçarken 25 m içinde düşman yoksa +4/sn
+> (+4 yakında sağlam dost), 45'te toparlanır. Her kaçış tavanı 25 düşürür → üçüncü kaçış kalıcı.
+> Sancaktar = ön safın ortası, büyük çizilir; ölünce ön safın ortasındaki devralır.
+> Saat iki takım sahaya çıkınca başlar (`matchDurationSeconds`, sahnede `Match` objesinde).
 
 ### M5 — Menzilli birimler
 Okçu ve tüfekli. Doldurma penceresi mekaniği, etikette doldurma halkası.

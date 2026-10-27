@@ -51,6 +51,10 @@ public class CombatSystem : MonoBehaviour
             float killsOnB = MeleeKills(a, fightersA, b, sideOnB) * dt;
             float killsOnA = MeleeKills(b, fightersB, a, sideOnA) * dt;
 
+            // Kanattan/arkadan yenen saldırı moral eritir (kaçan saldıran baskı kurmaz).
+            if (!a.IsRouting) b.ServerMoraleHit(Morale.SidePressurePerSec(sideOnB, b.Type.Value) * dt);
+            if (!b.IsRouting) a.ServerMoraleHit(Morale.SidePressurePerSec(sideOnA, a.Type.Value) * dt);
+
             // Şarj: sadece temasın ilk karesinde, o andaki hıza göre.
             if (!contacts.Contains(key))
             {
@@ -90,7 +94,7 @@ public class CombatSystem : MonoBehaviour
 
     float MeleeKills(Battalion attacker, int fighters, Battalion defender, HitSide sideOnDefender)
     {
-        float fatigue = 0.5f + 0.5f * attacker.Stamina01;
+        float fatigue = (0.5f + 0.5f * attacker.Stamina01) * Morale.AttackFactor(attacker.Status.Value);
         float vulnerable = defender.IsTransitioning ? transitionVulnerability : 1f;
         return fighters * lethality * attacker.Definition.attack / defender.Definition.defense * fatigue
                * CombatMath.SideMultiplier(sideOnDefender, defender.Type.Value) * vulnerable;
@@ -101,7 +105,8 @@ public class CombatSystem : MonoBehaviour
     static void Charge(Battalion attacker, int fighters, Battalion defender, HitSide sideOnDefender,
         ref float killsOnDefender, ref float killsOnAttacker)
     {
-        if (attacker.ServerSpeed <= attacker.Definition.walkSpeed + 0.1f) return; // yürüyen şarj etmez
+        // Yürüyen ya da kaçan şarj etmez.
+        if (attacker.IsRouting || attacker.ServerSpeed <= attacker.Definition.walkSpeed + 0.1f) return;
 
         float impact = fighters * attacker.ServerSpeed * attacker.Definition.chargeImpact
                        * (0.5f + 0.5f * attacker.Stamina01)

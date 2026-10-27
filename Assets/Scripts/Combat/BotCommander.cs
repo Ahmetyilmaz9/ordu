@@ -21,7 +21,7 @@ public class BotCommander : MonoBehaviour
 
         foreach (var bot in Battalion.All)
         {
-            if (bot.OwnerClientId != NetworkManager.ServerClientId || bot.InCombat.Value) continue;
+            if (bot.OwnerClientId != NetworkManager.ServerClientId || bot.InCombat.Value || bot.IsRouting) continue;
 
             Battalion target = null;
             float best = float.MaxValue;

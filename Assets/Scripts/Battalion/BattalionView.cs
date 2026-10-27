@@ -45,11 +45,15 @@ public class BattalionView : MonoBehaviour
         Vector3 up = Vector3.up * def.soldierScale * 0.5f;
         Vector3 scale = Vector3.one * def.soldierScale;
         var alive = battalion.Alive.Value;
+        int banner = battalion.BannerSlot.Value;
         int drawn = 0;
         for (int i = 0; i < count; i++)
         {
             positions[i] = Vector3.MoveTowards(positions[i], battalion.SlotWorldPosition(i), maxStep);
-            if (alive.Get(i)) matrices[drawn++] = Matrix4x4.TRS(positions[i] + up, Quaternion.identity, scale);
+            if (!alive.Get(i)) continue;
+            // Sancaktar büyük çizilir (bayrak modeli M8'de).
+            Vector3 s = i == banner ? scale * 1.8f : scale;
+            matrices[drawn++] = Matrix4x4.TRS(positions[i] + up, Quaternion.identity, s);
         }
         if (drawn == 0) return; // ölüm efekti ("poof") M8'de
 
@@ -63,7 +67,7 @@ public class BattalionView : MonoBehaviour
         Graphics.RenderMeshInstanced(rp, def.soldierMesh, 0, matrices, drawn);
     }
 
-    // M1 etiketi: tip adı + asker sayısı, takım rengi. İkon M4 ile birlikte.
+    // Etiket: tip + sayı, formasyon, durum, moral çubuğu. Takım rengi; kaçarken yanıp söner.
     void OnGUI()
     {
         var cam = Camera.main;
@@ -73,12 +77,24 @@ public class BattalionView : MonoBehaviour
         if (screen.z < 0f) return;
 
         labelStyle ??= new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+        bool routing = battalion.IsRouting;
+        if (routing && Mathf.Repeat(Time.time, 0.6f) < 0.3f) return;
         GUI.color = Selected ? Color.white : TeamColor;
         string formation = Formation.DisplayName(battalion.Type.Value) + (battalion.IsTransitioning ? " (diziliyor…)" : "");
-        string state = (battalion.InCombat.Value ? "⚔ " : "") + (battalion.Running.Value ? "koşu " : "")
+        string state = Morale.DisplayName(battalion.Status.Value) + " · "
+                       + (battalion.InCombat.Value ? "⚔ " : "") + (battalion.Running.Value ? "koşu " : "")
                        + $"yorgunluk %{100 - battalion.StaminaPercent.Value}";
         string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.AliveCount}\n{formation}\n{state}";
-        GUI.Label(new Rect(screen.x - 90f, Screen.height - screen.y - 30f, 180f, 60f), text, labelStyle);
+        float top = Screen.height - screen.y - 30f;
+        GUI.Label(new Rect(screen.x - 100f, top, 200f, 60f), text, labelStyle);
+
+        // Moral çubuğu: yeşil > sarı > kırmızı
+        float morale = battalion.MoralePercent.Value / 100f;
+        var bar = new Rect(screen.x - 40f, top + 60f, 80f, 6f);
+        GUI.color = Color.black;
+        GUI.DrawTexture(bar, Texture2D.whiteTexture);
+        GUI.color = morale >= Morale.ShakenBelow / 100f ? Color.green : routing ? Color.red : Color.yellow;
+        GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * morale, bar.height), Texture2D.whiteTexture);
         GUI.color = Color.white;
     }
 }

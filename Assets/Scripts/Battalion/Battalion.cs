@@ -24,11 +24,16 @@ public class Battalion : NetworkBehaviour
     public readonly NetworkVariable<bool> Running = new NetworkVariable<bool>();
     public readonly NetworkVariable<byte> StaminaPercent = new NetworkVariable<byte>(100);
     public readonly NetworkVariable<bool> InCombat = new NetworkVariable<bool>();
+    public readonly NetworkVariable<MoraleState> Status = new NetworkVariable<MoraleState>();
+    public readonly NetworkVariable<byte> MoralePercent = new NetworkVariable<byte>(100);
+    public readonly NetworkVariable<short> BannerSlot = new NetworkVariable<short>(); // sancaktar
 
     Vector3 destination;
     Quaternion finalFacing;
     bool moving, hasFinalFacing;
     float stamina = 1f;
+    float morale = 100f, moraleCeiling = 100f;
+    bool bannerLost;
 
     // Sunucu: bu karedeki gerçek hız (şarj darbesi bundan hesaplanır).
     public float ServerSpeed { get; private set; }
@@ -44,7 +49,15 @@ public class Battalion : NetworkBehaviour
         FormationWidth.Value = definition.defaultWidth;
         SoldierCount.Value = Mathf.Min(definition.soldierCount, AliveMask.Capacity);
         Alive.Value = AliveMask.Full(SoldierCount.Value);
+        BannerSlot.Value = (short)FrontCenterAlive();
     }
+
+    public bool IsRouting => Status.Value == MoraleState.Routing;
+
+    // Ön safın ortasındaki hayattaki asker (sancaktar yeri).
+    int FrontCenterAlive() =>
+        CombatMath.PickCasualty(Type.Value, FormationWidth.Value, SoldierCount.Value, definition.slotSpacing,
+            Alive.Value, HitSide.Front, 0f);
 
     public override void OnNetworkDespawn() => All.Remove(this);
 
@@ -79,7 +92,7 @@ public class Battalion : NetworkBehaviour
     public void MoveRpc(Vector3 target, Vector3 facing, int lineWidth, RpcParams rpcParams = default)
     {
         // Güven sınırı: sadece sahibi emir verebilir, değerler geçerli olmalı.
-        if (rpcParams.Receive.SenderClientId != OwnerClientId) return;
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
         if (!IsFinite(target) || !IsFinite(facing)) return;
 
         destination = new Vector3(
@@ -105,7 +118,7 @@ public class Battalion : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void SetFormationRpc(FormationType type, RpcParams rpcParams = default)
     {
-        if (rpcParams.Receive.SenderClientId != OwnerClientId) return;
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
         if (!System.Enum.IsDefined(typeof(FormationType), type) || type == Type.Value) return;
 
         Type.Value = type;
@@ -115,7 +128,7 @@ public class Battalion : NetworkBehaviour
     [Rpc(SendTo.Server)]
     public void SetRunRpc(bool run, RpcParams rpcParams = default)
     {
-        if (rpcParams.Receive.SenderClientId != OwnerClientId) return;
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
         Running.Value = run;
     }
 
@@ -125,6 +138,82 @@ public class Battalion : NetworkBehaviour
         var mask = Alive.Value;
         mask.Set(slot, false);
         Alive.Value = mask;
+
+        ServerMoraleHit(Morale.CasualtyLoss(SoldierCount.Value));
+        if (slot == BannerSlot.Value)
+        {
+            // Sancak düştü: tek seferlik şok, ön saftan biri devralır.
+            if (!bannerLost) ServerMoraleHit(Morale.BannerShock);
+            bannerLost = true;
+            BannerSlot.Value = (short)FrontCenterAlive();
+        }
+    }
+
+    // Sunucu: moral kaybı (disiplin böler).
+    public void ServerMoraleHit(float amount) => morale -= amount / Mathf.Max(0.1f, definition.discipline);
+
+    void UpdateMorale(float dt)
+    {
+        if (IsRouting)
+        {
+            if (!EnemyWithin(Morale.EnemyNearRadius))
+                morale += (Morale.RallyPerSec + (SteadyFriendWithin(Morale.FriendRadius) ? Morale.RallySupportPerSec : 0f)) * dt;
+        }
+        else if (!InCombat.Value) morale += Morale.RecoveryPerSec * dt;
+        else if (stamina < 0.25f) ServerMoraleHit(Morale.FatiguePerSec * dt);
+
+        morale = Mathf.Clamp(morale, 0f, moraleCeiling);
+        byte percent = (byte)Mathf.RoundToInt(morale);
+        if (percent != MoralePercent.Value) MoralePercent.Value = percent;
+
+        var next = Morale.Evaluate(Status.Value, morale);
+        if (next == Status.Value) return;
+
+        if (next == MoraleState.Routing) StartRout();
+        else if (IsRouting) Rally();
+        Status.Value = next;
+    }
+
+    void StartRout()
+    {
+        // Kontrol oyuncudan çıkar, en yakın harita kenarına koşar. Yakındaki dostlar sarsılır.
+        // Her kaçış moral tavanını düşürür: 75, 50, 25 → üçüncü kaçıştan toparlanılamaz (25 < RallyAbove).
+        moraleCeiling -= Morale.CeilingDropPerRout;
+        Vector3 p = transform.position;
+        Vector3 edge = Mathf.Abs(p.x) > Mathf.Abs(p.z)
+            ? new Vector3(Mathf.Sign(p.x) * MapHalfSize, 0f, p.z)
+            : new Vector3(p.x, 0f, Mathf.Sign(p.z) * MapHalfSize);
+        destination = edge;
+        moving = true;
+        hasFinalFacing = false;
+
+        foreach (var other in All)
+            if (other != this && other.Team.Value == Team.Value && !other.IsRouting
+                && (other.transform.position - p).sqrMagnitude < Morale.FriendRadius * Morale.FriendRadius)
+                other.ServerMoraleHit(Morale.FriendRoutShock);
+    }
+
+    void Rally()
+    {
+        moving = false;
+        Running.Value = false;
+    }
+
+    bool EnemyWithin(float radius)
+    {
+        foreach (var other in All)
+            if (other.Team.Value != Team.Value && (other.transform.position - transform.position).sqrMagnitude < radius * radius)
+                return true;
+        return false;
+    }
+
+    bool SteadyFriendWithin(float radius)
+    {
+        foreach (var other in All)
+            if (other != this && other.Team.Value == Team.Value && other.Status.Value == MoraleState.Steady
+                && (other.transform.position - transform.position).sqrMagnitude < radius * radius)
+                return true;
+        return false;
     }
 
     void StartTransition() =>
@@ -136,12 +225,18 @@ public class Battalion : NetworkBehaviour
 
         float dt = Time.deltaTime;
         ServerSpeed = 0f;
-        bool runningNow = Running.Value && moving && stamina > 0f;
+        UpdateMorale(dt);
+        bool runningNow = IsRouting || (Running.Value && moving && stamina > 0f); // kaçan yorgunluğa bakmaz
         stamina = Mathf.Clamp01(stamina + (runningNow ? -definition.staminaDrainPerSec : definition.staminaRegenPerSec) * dt);
         byte percent = (byte)Mathf.RoundToInt(stamina * 100f);
         if (percent != StaminaPercent.Value) StaminaPercent.Value = percent;
 
         if (moving) Move(runningNow, dt);
+
+        // Kaçan bölük harita kenarına varınca sahadan çıkar (zaferde yok sayılır).
+        Vector3 p = transform.position;
+        if (IsRouting && Mathf.Max(Mathf.Abs(p.x), Mathf.Abs(p.z)) >= MapHalfSize - 1f)
+            NetworkObject.Despawn();
     }
 
     void Move(bool running, float dt)

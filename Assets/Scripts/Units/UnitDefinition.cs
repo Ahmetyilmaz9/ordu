@@ -27,6 +27,7 @@ public class UnitDefinition : ScriptableObject
     public float chargeImpact = 0.05f;   // temas anında: cephedeki asker × hız (m/sn) × bu = öldürme
     [Range(0f, 1f)]
     public float antiChargeFront = 0f;   // önden şarjın bu oranı saldırana geri döner (kargı)
+    public float discipline = 1f;        // moral kayıpları buna bölünür (yeniçeri > azap)
 
     [Header("Yorgunluk (0-1 / sn)")]
     public float staminaDrainPerSec = 1f / 40f; // tam yorgunluğa 40 sn koşu
