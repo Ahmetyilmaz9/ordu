@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M4 tamamlandı (2026-10-27) — oyun oynanabilir. Sıradaki: M5 — menzilli birimler.
+**Durum:** M5 tamamlandı (2026-10-28). Sıradaki: M6 — ordu kurma + eşleştirme.
 
 ---
 
@@ -387,11 +387,22 @@ Tabur cengi ve Mehter kararları.
 > Sancaktar = ön safın ortası, büyük çizilir; ölünce ön safın ortasındaki devralır.
 > Saat iki takım sahaya çıkınca başlar (`matchDurationSeconds`, sahnede `Match` objesinde).
 
-### M5 — Menzilli birimler
+### M5 — Menzilli birimler ✅
 Okçu ve tüfekli. Doldurma penceresi mekaniği, etikette doldurma halkası.
 > **Okları replike etme.** Sunucu salvoyu bölük seviyesinde çözer ("hedef bölük
 > 14 kayıp verdi, cepheden"), istemci tamamen kozmetik ok spawn eder. Ok fiziği
 > ve çarpışması istemcide yok.
+
+> **Yapıldı ve test edildi.** Birim tipleri artık `UnitRoster` asset'inde
+> (Piyade, Okçu, Tüfekli); bölük ağda sadece `UnitIndex` taşır. Sunucu (`CombatSystem.TryFire`):
+> duran, ateşi serbest, dolu, yakın dövüşte olmayan atıcı önündeki 60° içinde menzildeki en yakın
+> düşmana salvo atar → öldürme = atıcı × `killsPerShot` × mesafe düşüşü (menzil sonunda %40) ×
+> kenar çarpanı; ölüm yöne göre, tüfekte moral kaybı × `firearmMoraleMultiplier` (2). Doldurma
+> bitişi sunucu saatiyle replike (`ReloadEndTime`). Okçu: 70 m, 3 sn, hepsi atar, zayıf.
+> Tüfekli: 50 m, 18 sn, 2 saf, yıkıcı, yakında zayıf. Kontrol: **F** ateşi tut/serbest.
+> Etikette doldurma çubuğu (rakipte de görünür). Kestirmeler: halka yerine çubuk; salvo
+> efekti çizgi (`VolleyRpc` herkese gider — M7'de görenlere sınırlanacak); zırh yok;
+> hedef seçme yok (en yakın), odak ateşi sonra.
 
 ### M6 — Ordu kurma ekranı + eşleştirme
 Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → savaş.

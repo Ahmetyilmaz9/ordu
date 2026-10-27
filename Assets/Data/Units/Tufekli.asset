@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87c055c1e9861914898669ffa2ed8a0a, type: 3}
+  m_Name: Tufekli
+  m_EditorClassIdentifier: Assembly-CSharp::UnitDefinition
+  unitId: tufekli
+  displayName: "T\xFCfekli"
+  factionId: Faction_Default
+  soldierCount: 100
+  defaultWidth: 25
+  slotSpacing: 1.5
+  walkSpeed: 2.5
+  runSpeed: 4.5
+  formationChangeTime: 4.5
+  transitionSpeedFactor: 0.4
+  attack: 5
+  defense: 5
+  chargeImpact: 0.03
+  antiChargeFront: 0
+  discipline: 1.3
+  range: 50
+  reloadTime: 18
+  killsPerShot: 0.25
+  shootingRanks: 2
+  firearmMoraleMultiplier: 2
+  staminaDrainPerSec: 0.025
+  staminaRegenPerSec: 0.016666668
+  soldierMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  soldierMaterial: {fileID: 2100000, guid: e5504917ab477384fa6785d7cc7af122, type: 2}
+  soldierScale: 0.8

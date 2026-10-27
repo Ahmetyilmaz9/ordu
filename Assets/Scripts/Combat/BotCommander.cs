@@ -2,7 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 // Sunucu: sunucuya ait (bot) bölükleri yönetir. Oyuncuyla aynı emir yolunu (RPC) kullanır.
-// Tek kural: en yakın düşmana yürü, yaklaşınca koş (şarj).
+// Kural: en yakın düşmana yürü; yakın dövüşçü yaklaşınca koşar (şarj), atıcı menzilde durup ateş eder.
 [RequireComponent(typeof(NetworkManager))]
 public class BotCommander : MonoBehaviour
 {
@@ -34,8 +34,18 @@ public class BotCommander : MonoBehaviour
             if (target == null) continue;
 
             Vector3 toTarget = target.transform.position - bot.transform.position;
+            float distance = toTarget.magnitude;
+
+            // Atıcı: menzilin içine girince durur, hedefe dönük ateş eder (CombatSystem kendisi atar).
+            if (bot.IsRanged && distance < bot.Definition.range * 0.8f)
+            {
+                bot.MoveRpc(bot.transform.position, toTarget, 0);
+                if (bot.Running.Value) bot.SetRunRpc(false);
+                continue;
+            }
+
             bot.MoveRpc(target.transform.position, toTarget, 0);
-            bool charge = toTarget.magnitude < chargeDistance;
+            bool charge = !bot.IsRanged && distance < chargeDistance;
             if (bot.Running.Value != charge) bot.SetRunRpc(charge);
         }
     }

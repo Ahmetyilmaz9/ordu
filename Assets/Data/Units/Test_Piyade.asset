@@ -27,6 +27,11 @@ MonoBehaviour:
   chargeImpact: 0.05
   antiChargeFront: 0
   discipline: 1
+  range: 0
+  reloadTime: 0
+  killsPerShot: 0
+  shootingRanks: 0
+  firearmMoraleMultiplier: 1
   staminaDrainPerSec: 0.025
   staminaRegenPerSec: 0.016666668
   soldierMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}

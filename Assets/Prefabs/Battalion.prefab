@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3126885686
+  GlobalObjectIdHash: 1487917911
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -121,7 +121,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Battalion
   ShowTopMostFoldoutHeaderGroup: 1
-  definition: {fileID: 11400000, guid: bb2b9952accc11945a0ed11e708a26f1, type: 2}
+  roster: {fileID: 11400000, guid: 0694f29b817456c4ba4ee15f4cb3619a, type: 2}
 --- !u!114 &8599062967672877642
 MonoBehaviour:
   m_ObjectHideFlags: 0

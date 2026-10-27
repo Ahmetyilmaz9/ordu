@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 662c3d93b1aefdf43a014a9ffd67a7e4, type: 3}
+  m_Name: Roster
+  m_EditorClassIdentifier: Assembly-CSharp::UnitRoster
+  units:
+  - {fileID: 11400000, guid: bb2b9952accc11945a0ed11e708a26f1, type: 2}
+  - {fileID: 11400000, guid: c9b417b35e558164d928097af56a9998, type: 2}
+  - {fileID: 11400000, guid: cc84cd1c51869174d9c273b7de5df4b8, type: 2}

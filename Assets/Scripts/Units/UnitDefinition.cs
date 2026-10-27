@@ -29,6 +29,13 @@ public class UnitDefinition : ScriptableObject
     public float antiChargeFront = 0f;   // önden şarjın bu oranı saldırana geri döner (kargı)
     public float discipline = 1f;        // moral kayıpları buna bölünür (yeniçeri > azap)
 
+    [Header("Menzilli (range 0 = sadece yakın dövüş)")]
+    public float range = 0f;                 // m
+    public float reloadTime = 0f;            // sn; okçu kısa (sürekli), tüfek uzun (doldurma penceresi)
+    public float killsPerShot = 0f;          // atıcı başına, dibinden atışta beklenen öldürme
+    public int shootingRanks = 0;            // ateş eden saf sayısı; 0 = hepsi (okçu tepeden atar)
+    public float firearmMoraleMultiplier = 1f; // barut kuralı: tüfek kaybı 2 kat moral kırar
+
     [Header("Yorgunluk (0-1 / sn)")]
     public float staminaDrainPerSec = 1f / 40f; // tam yorgunluğa 40 sn koşu
     public float staminaRegenPerSec = 1f / 60f;

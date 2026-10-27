@@ -2,7 +2,7 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
-// Sunucu: bağlanan her oyuncuya kendi bölüklerini doğurur. İlk bağlanan takım 0 (güney), ikinci takım 1 (kuzey).
+// Sunucu: bağlanan her oyuncuya listedeki her birim tipinden bir bölük doğurur. İlk bağlanan takım 0 (güney), ikinci takım 1 (kuzey).
 // Bot modunda bütün oyuncular takım 0, takım 1 sunucuya ait bot ordusu.
 // shortcut: sabit doğum noktaları; yerleştirme fazı M6'da gelecek.
 [RequireComponent(typeof(NetworkManager))]
@@ -11,7 +11,7 @@ public class BattalionSpawner : MonoBehaviour
     public const string VsBotPref = "Ordu.VsBot";
 
     [SerializeField] Battalion battalionPrefab;
-    [SerializeField] int battalionsPerPlayer = 2;
+    [SerializeField] UnitRoster roster; // shortcut: her tipten bir bölük; ordu kurma ekranı M6'da
     [SerializeField] float spawnDistance = 40f;
     [SerializeField] float spacing = 45f;
 
@@ -54,12 +54,13 @@ public class BattalionSpawner : MonoBehaviour
         float z = team == 0 ? -spawnDistance : spawnDistance;
         Quaternion facing = team == 0 ? Quaternion.identity : Quaternion.Euler(0f, 180f, 0f);
 
-        for (int i = 0; i < battalionsPerPlayer; i++)
+        int count = roster.units.Length;
+        for (int i = 0; i < count; i++)
         {
-            float x = (i - (battalionsPerPlayer - 1) * 0.5f) * spacing;
+            float x = (i - (count - 1) * 0.5f) * spacing;
             var battalion = Instantiate(battalionPrefab, new Vector3(x, 0f, z), facing);
+            battalion.ServerInit(team, (byte)i);
             battalion.NetworkObject.SpawnWithOwnership(ownerClientId);
-            battalion.Team.Value = team;
         }
     }
 }

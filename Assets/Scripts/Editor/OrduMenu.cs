@@ -10,7 +10,8 @@ using UnityEngine;
 public static class OrduMenu
 {
     const string ScenePath = "Assets/Scenes/Battle.unity";
-    const string UnitPath = "Assets/Data/Units/Test_Piyade.asset";
+    const string UnitsFolder = "Assets/Data/Units/";
+    const string RosterPath = "Assets/Data/Units/Roster.asset";
     const string MaterialPath = "Assets/Art/Materials/Soldier.mat";
     const string PrefabPath = "Assets/Prefabs/Battalion.prefab";
     const string PrefabListPath = "Assets/DefaultNetworkPrefabs.asset";
@@ -44,7 +45,9 @@ public static class OrduMenu
             nm.NetworkConfig.Prefabs.NetworkPrefabsLists.Add(prefabList);
 
         nmGo.AddComponent<NetworkBootstrap>();
-        Set(nmGo.AddComponent<BattalionSpawner>(), "battalionPrefab", prefab.GetComponent<Battalion>());
+        var spawner = nmGo.AddComponent<BattalionSpawner>();
+        Set(spawner, "battalionPrefab", prefab.GetComponent<Battalion>());
+        Set(spawner, "roster", AssetDatabase.LoadAssetAtPath<UnitRoster>(RosterPath));
         nmGo.AddComponent<CommandInput>();
         nmGo.AddComponent<CombatSystem>();
         nmGo.AddComponent<BotCommander>();
@@ -68,23 +71,35 @@ public static class OrduMenu
         var material = LoadOrCreate(MaterialPath, () =>
             new Material(Shader.Find("Universal Render Pipeline/Lit")) { enableInstancing = true });
 
-        var unit = LoadOrCreate(UnitPath, () =>
+        // Değerler sadece ilk oluşturmada yazılır; sonra Inspector'dan dengelenir, menü ezmez.
+        var roster = LoadOrCreate(RosterPath, ScriptableObject.CreateInstance<UnitRoster>);
+        roster.units = new[]
         {
-            var def = ScriptableObject.CreateInstance<UnitDefinition>();
-            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            def.soldierMesh = sphere.GetComponent<MeshFilter>().sharedMesh; // yerleşik küre mesh'i
-            Object.DestroyImmediate(sphere);
-            return def;
-        });
-        unit.soldierMaterial = material;
-        EditorUtility.SetDirty(unit);
+            Unit("Test_Piyade", material, d => { }),
+            Unit("Okcu", material, d =>
+            {
+                d.unitId = "okcu"; d.displayName = "Okçu";
+                d.soldierCount = 120; d.defaultWidth = 24;
+                d.attack = 6f; d.defense = 6f; d.discipline = 0.9f; d.chargeImpact = 0.03f;
+                d.range = 70f; d.reloadTime = 3f; d.killsPerShot = 0.02f; d.shootingRanks = 0; // sürekli ama zayıf
+            }),
+            Unit("Tufekli", material, d =>
+            {
+                d.unitId = "tufekli"; d.displayName = "Tüfekli";
+                d.soldierCount = 100; d.defaultWidth = 25;
+                d.attack = 5f; d.defense = 5f; d.discipline = 1.3f; d.chargeImpact = 0.03f; // yakında çöker
+                d.range = 50f; d.reloadTime = 18f; d.killsPerShot = 0.25f; d.shootingRanks = 2; // aralıklı, yıkıcı
+                d.firearmMoraleMultiplier = 2f; // barut kuralı
+            }),
+        };
+        EditorUtility.SetDirty(roster);
 
         var go = new GameObject("Battalion");
         go.AddComponent<NetworkObject>();
         var nt = go.AddComponent<NetworkTransform>();
         nt.AuthorityMode = NetworkTransform.AuthorityModes.Server;
         nt.SyncScaleX = nt.SyncScaleY = nt.SyncScaleZ = false;
-        Set(go.AddComponent<Battalion>(), "definition", unit);
+        Set(go.AddComponent<Battalion>(), "roster", roster);
         go.AddComponent<BattalionView>();
 
         EnsureFolder(PrefabPath);
@@ -184,7 +199,30 @@ public static class OrduMenu
         Check(MatchRules.Decide(true, true, 80, 120, true) == 1, "süre doldu: çok askeri kalan kazanır");
         Check(MatchRules.Decide(true, true, 50, 50, true) == MatchManager.Draw, "süre doldu, eşit: berabere");
 
+        // Menzilli
+        Check(CombatMath.Shooters(100, 25, 2) == 50, "tüfek: 2 saf × 25 = 50 atıcı");
+        Check(CombatMath.Shooters(30, 25, 2) == 30, "atıcı sayısı hayattakileri aşmaz");
+        Check(CombatMath.Shooters(120, 24, 0) == 120, "okçu: hepsi atar");
+        Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 0f, 50f) - 12.5f) < 0.01f, "dibinden salvo: 50 × 0,25 = 12,5");
+        Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 50f, 50f) - 5f) < 0.01f, "menzil sonunda %40");
+
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
+    }
+
+    static UnitDefinition Unit(string name, Material material, System.Action<UnitDefinition> configure)
+    {
+        var def = LoadOrCreate(UnitsFolder + name + ".asset", () =>
+        {
+            var d = ScriptableObject.CreateInstance<UnitDefinition>();
+            configure(d);
+            return d;
+        });
+        var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        def.soldierMesh = sphere.GetComponent<MeshFilter>().sharedMesh; // yerleşik küre mesh'i
+        Object.DestroyImmediate(sphere);
+        def.soldierMaterial = material;
+        EditorUtility.SetDirty(def);
+        return def;
     }
 
     [MenuItem("Ordu/Test/Slot Matematiği")]

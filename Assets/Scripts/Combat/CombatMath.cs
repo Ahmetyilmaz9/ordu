@@ -67,6 +67,15 @@ public static class CombatMath
         return side switch { HitSide.Front => 1f, HitSide.Rear => 2.2f, _ => 1.6f };
     }
 
+    // Ateş eden asker sayısı: ön saflar (tüfek) ya da hepsi (okçu, tepeden atar).
+    public static int Shooters(int alive, int width, int shootingRanks) =>
+        shootingRanks <= 0 ? alive : Mathf.Min(alive, width * shootingRanks);
+
+    // Salvo öldürmesi: menzil sonunda isabet %40'a düşer.
+    // shortcut: zırh yok; okçunun "zırha karşı zayıf" olması zırh istatistiği gelince.
+    public static float VolleyKills(int shooters, float killsPerShot, float distance, float range) =>
+        shooters * killsPerShot * Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(distance / Mathf.Max(range, 0.01f)));
+
     // Yöne göre ölüm: vurulan kenara en yakın safta, temas noktasına en yakın hayattaki asker ölür.
     // Saf önceliği (×100) yanal mesafeden her zaman baskın. -1 = ölecek kimse yok.
     public static int PickCasualty(FormationType type, int lineWidth, int count, float spacing,

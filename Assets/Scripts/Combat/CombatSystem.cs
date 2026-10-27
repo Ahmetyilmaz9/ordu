@@ -10,6 +10,7 @@ public class CombatSystem : MonoBehaviour
     [SerializeField] float contactMargin = 1f;   // bu kadar yakın dikdörtgenler temasta sayılır
     [SerializeField] float lethality = 0.05f;    // cephedeki asker × saldırı/savunma × bu = öldürme/sn
     [SerializeField] float transitionVulnerability = 1.5f; // formasyon değiştiren bölük daha çok kayıp verir
+    [SerializeField] float fireArcDegrees = 60f;  // menzilli bölük ancak önündeki bu açıya ateş eder
 
     NetworkManager nm;
     readonly Dictionary<(ulong, ulong), float> pendingKills = new Dictionary<(ulong, ulong), float>();
@@ -66,6 +67,10 @@ public class CombatSystem : MonoBehaviour
             ApplyKills(a, (a.NetworkObjectId, b.NetworkObjectId), killsOnA, sideOnA, centerOnA);
         }
 
+        // Menzilli: yakın dövüşte olmayan atıcılar salvo atar (oklar/kurşunlar replike edilmez).
+        foreach (var shooter in all)
+            if (shooter.IsRanged && !fighting.Contains(shooter)) TryFire(shooter, all);
+
         contacts.Clear();
         contacts.UnionWith(contactsThisFrame);
 
@@ -117,7 +122,44 @@ public class CombatSystem : MonoBehaviour
         killsOnAttacker += impact * brace;
     }
 
-    void ApplyKills(Battalion victim, (ulong, ulong) key, float kills, HitSide side, float contactCenter)
+    // Duran, ateşi serbest, dolu bir atıcı önündeki açıda menzildeki en yakın düşmana salvo atar.
+    void TryFire(Battalion shooter, List<Battalion> all)
+    {
+        if (shooter.HoldFire.Value || shooter.IsRouting || shooter.IsReloading || shooter.IsTransitioning
+            || shooter.ServerSpeed > 0.01f || shooter.AliveCount == 0) return;
+
+        var def = shooter.Definition;
+        Battalion target = null;
+        float distance = def.range;
+        foreach (var t in all)
+        {
+            if (t.Team.Value == shooter.Team.Value || t.AliveCount == 0) continue;
+            Vector3 to = t.transform.position - shooter.transform.position;
+            to.y = 0f;
+            float d = to.magnitude;
+            if (d > distance || Vector3.Angle(shooter.transform.forward, to) > fireArcDegrees) continue;
+            distance = d;
+            target = t;
+        }
+        if (target == null) return;
+
+        Obb targetObb = target.GetObb(), shooterObb = shooter.GetObb();
+        HitSide side = CombatMath.SideOf(targetObb, shooterObb.Center);
+        CombatMath.ContactLength(targetObb, shooterObb, side, out float center);
+
+        int width = Formation.EffectiveWidth(shooter.Type.Value, shooter.FormationWidth.Value, shooter.SoldierCount.Value);
+        int shooters = CombatMath.Shooters(shooter.AliveCount, width, def.shootingRanks);
+        float kills = CombatMath.VolleyKills(shooters, def.killsPerShot, distance, def.range)
+                      * Morale.AttackFactor(shooter.Status.Value)
+                      * CombatMath.SideMultiplier(side, target.Type.Value)
+                      * (target.IsTransitioning ? transitionVulnerability : 1f);
+
+        ApplyKills(target, (target.NetworkObjectId, shooter.NetworkObjectId), kills, side, center, def.firearmMoraleMultiplier);
+        shooter.ServerFired(target.transform.position);
+    }
+
+    void ApplyKills(Battalion victim, (ulong, ulong) key, float kills, HitSide side, float contactCenter,
+        float moraleMultiplier = 1f)
     {
         pendingKills.TryGetValue(key, out float pending);
         pending += kills;
@@ -127,7 +169,7 @@ public class CombatSystem : MonoBehaviour
             int slot = CombatMath.PickCasualty(victim.Type.Value, victim.FormationWidth.Value,
                 victim.SoldierCount.Value, def.slotSpacing, victim.Alive.Value, side, contactCenter);
             if (slot < 0) break;
-            victim.ServerKill(slot);
+            victim.ServerKill(slot, moraleMultiplier);
             pending -= 1f;
         }
         pendingKills[key] = pending;

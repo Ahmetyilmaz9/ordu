@@ -12,8 +12,16 @@ public class Battalion : NetworkBehaviour
 
     public static readonly List<Battalion> All = new List<Battalion>();
 
-    [SerializeField] UnitDefinition definition;
+    [SerializeField] UnitRoster roster;
+    UnitDefinition definition; // roster[UnitIndex]; spawn'da iki tarafta da aynı asset'ten
     public UnitDefinition Definition => definition;
+
+    public readonly NetworkVariable<byte> UnitIndex = new NetworkVariable<byte>();
+    public readonly NetworkVariable<bool> HoldFire = new NetworkVariable<bool>();
+    public readonly NetworkVariable<double> ReloadEndTime = new NetworkVariable<double>(); // sunucu zamanı
+
+    // Spawn'dan önce sunucunun verdiği başlangıç değerleri.
+    byte pendingTeam, pendingUnit;
 
     public readonly NetworkVariable<byte> Team = new NetworkVariable<byte>();
     public readonly NetworkVariable<FormationType> Type = new NetworkVariable<FormationType>();
@@ -40,8 +48,21 @@ public class Battalion : NetworkBehaviour
     public float Stamina01 => IsServer ? stamina : StaminaPercent.Value / 100f;
     public int AliveCount => Alive.Value.Count;
 
+    // Sunucu: Spawn'dan önce çağrılır.
+    public void ServerInit(byte team, byte unitIndex)
+    {
+        pendingTeam = team;
+        pendingUnit = unitIndex;
+    }
+
     public override void OnNetworkSpawn()
     {
+        if (IsServer)
+        {
+            Team.Value = pendingTeam;
+            UnitIndex.Value = (byte)Mathf.Min(pendingUnit, roster.units.Length - 1);
+        }
+        definition = roster.units[UnitIndex.Value];
         All.Add(this);
         if (!IsServer) return;
 
@@ -132,14 +153,37 @@ public class Battalion : NetworkBehaviour
         Running.Value = run;
     }
 
+    // Ateşi tut / serbest bırak: salvoyu temasa saklamak oyunun merkez kararı.
+    [Rpc(SendTo.Server)]
+    public void SetHoldFireRpc(bool hold, RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
+        HoldFire.Value = hold;
+    }
+
+    public bool IsRanged => definition.range > 0f;
+    public bool IsReloading => NetworkManager != null && NetworkManager.ServerTime.Time < ReloadEndTime.Value;
+
+    // Sunucu: salvo atıldı; doldurma başlar, istemciler kozmetik efekti çizer.
+    public void ServerFired(Vector3 targetPosition)
+    {
+        ReloadEndTime.Value = NetworkManager.ServerTime.Time + definition.reloadTime;
+        VolleyRpc(targetPosition);
+    }
+
+    // shortcut: bütün istemcilere gider; M7'de sis gelince sadece atanı/hedefi görenlere gönderilecek.
+    [Rpc(SendTo.NotServer)]
+    void VolleyRpc(Vector3 targetPosition) => GetComponent<BattalionView>().ShowVolley(targetPosition);
+
     // Sunucu: savaş sistemi bir askeri öldürür (bölüğün ağdan kalkmasını CombatSystem yapar).
-    public void ServerKill(int slot)
+    // moraleMultiplier: barut kuralı — tüfekle ölen asker daha çok moral kırar.
+    public void ServerKill(int slot, float moraleMultiplier = 1f)
     {
         var mask = Alive.Value;
         mask.Set(slot, false);
         Alive.Value = mask;
 
-        ServerMoraleHit(Morale.CasualtyLoss(SoldierCount.Value));
+        ServerMoraleHit(Morale.CasualtyLoss(SoldierCount.Value) * moraleMultiplier);
         if (slot == BannerSlot.Value)
         {
             // Sancak düştü: tek seferlik şok, ön saftan biri devralır.

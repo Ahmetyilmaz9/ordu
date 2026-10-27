@@ -15,6 +15,8 @@ public class BattalionView : MonoBehaviour
     Vector3[] positions;
     Matrix4x4[] matrices;
     MaterialPropertyBlock props;
+    LineRenderer volley;
+    float volleyHideTime;
 
     Color TeamColor => TeamColors[battalion.Team.Value % TeamColors.Length];
 
@@ -55,6 +57,7 @@ public class BattalionView : MonoBehaviour
             Vector3 s = i == banner ? scale * 1.8f : scale;
             matrices[drawn++] = Matrix4x4.TRS(positions[i] + up, Quaternion.identity, s);
         }
+        if (volley != null && Time.time > volleyHideTime) volley.enabled = false;
         if (drawn == 0) return; // ölüm efekti ("poof") M8'de
 
         props.SetColor(BaseColorId, Selected ? Color.Lerp(TeamColor, Color.white, 0.45f) : TeamColor);
@@ -65,6 +68,31 @@ public class BattalionView : MonoBehaviour
         };
         // shortcut: RenderMeshInstanced çağrı başına 1023 instance sınırlı; 200'lük bölükler için yeterli.
         Graphics.RenderMeshInstanced(rp, def.soldierMesh, 0, matrices, drawn);
+    }
+
+    // Salvo efekti: tamamen kozmetik, sunucu kaybı zaten çözdü.
+    // shortcut: çizgi; ok yağmuru ve bölük dumanı M8'de.
+    public void ShowVolley(Vector3 target)
+    {
+        if (!enabled) return;
+        if (volley == null)
+        {
+            volley = new GameObject("Volley").AddComponent<LineRenderer>();
+            volley.widthMultiplier = 0.6f;
+            volley.material = battalion.Definition.soldierMaterial;
+            var block = new MaterialPropertyBlock();
+            block.SetColor(BaseColorId, battalion.Definition.firearmMoraleMultiplier > 1f ? Color.white : Color.yellow);
+            volley.SetPropertyBlock(block);
+        }
+        Vector3 lift = Vector3.up * 1.5f;
+        volley.SetPositions(new[] { transform.position + lift, target + lift });
+        volley.enabled = true;
+        volleyHideTime = Time.time + 0.4f;
+    }
+
+    void OnDestroy()
+    {
+        if (volley != null) Destroy(volley.gameObject);
     }
 
     // Etiket: tip + sayı, formasyon, durum, moral çubuğu. Takım rengi; kaçarken yanıp söner.
@@ -84,6 +112,7 @@ public class BattalionView : MonoBehaviour
         string state = Morale.DisplayName(battalion.Status.Value) + " · "
                        + (battalion.InCombat.Value ? "⚔ " : "") + (battalion.Running.Value ? "koşu " : "")
                        + $"yorgunluk %{100 - battalion.StaminaPercent.Value}";
+        if (battalion.IsRanged) state += battalion.HoldFire.Value ? " · ATEŞİ TUT" : " · ateş serbest";
         string text = $"{(Selected ? "▶ " : "")}{battalion.Definition.displayName} {battalion.AliveCount}\n{formation}\n{state}";
         float top = Screen.height - screen.y - 30f;
         GUI.Label(new Rect(screen.x - 100f, top, 200f, 60f), text, labelStyle);
@@ -95,6 +124,20 @@ public class BattalionView : MonoBehaviour
         GUI.DrawTexture(bar, Texture2D.whiteTexture);
         GUI.color = morale >= Morale.ShakenBelow / 100f ? Color.green : routing ? Color.red : Color.yellow;
         GUI.DrawTexture(new Rect(bar.x, bar.y, bar.width * morale, bar.height), Texture2D.whiteTexture);
+
+        // Doldurma çubuğu: rakibin atıcısında da görünür — "ateş etti, şimdi süvari gönder" buradan okunur.
+        // shortcut: halka yerine çubuk; etiket UI'ı M8'de.
+        if (battalion.IsRanged)
+        {
+            double left = battalion.ReloadEndTime.Value - battalion.NetworkManager.ServerTime.Time;
+            float ready = left <= 0 ? 1f : 1f - (float)(left / battalion.Definition.reloadTime);
+            var reload = new Rect(bar.x, bar.y + 9f, bar.width, bar.height);
+            GUI.color = Color.black;
+            GUI.DrawTexture(reload, Texture2D.whiteTexture);
+            GUI.color = ready >= 1f ? Color.cyan : new Color(0.2f, 0.4f, 0.6f);
+            GUI.DrawTexture(new Rect(reload.x, reload.y, reload.width * ready, reload.height), Texture2D.whiteTexture);
+            if (ready < 1f) GUI.Label(new Rect(screen.x - 60f, reload.y + 4f, 120f, 20f), "DOLDURUYOR", labelStyle);
+        }
         GUI.color = Color.white;
     }
 }
