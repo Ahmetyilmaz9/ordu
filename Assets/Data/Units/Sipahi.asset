@@ -15,6 +15,7 @@ MonoBehaviour:
   unitId: sipahi
   displayName: Sipahi
   factionId: Faction_Default
+  maxSlots: 3
   soldierCount: 50
   defaultWidth: 10
   slotSpacing: 2

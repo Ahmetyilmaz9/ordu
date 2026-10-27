@@ -15,6 +15,7 @@ MonoBehaviour:
   unitId: okcu
   displayName: "Ok\xE7u"
   factionId: Faction_Default
+  maxSlots: 3
   soldierCount: 120
   defaultWidth: 24
   slotSpacing: 1.5

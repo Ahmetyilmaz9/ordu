@@ -16,7 +16,7 @@ public class BotCommander : MonoBehaviour
 
     void Update()
     {
-        if (!nm.IsServer || Time.time < nextThink) return;
+        if (!nm.IsServer || !MatchManager.BattleRunning || Time.time < nextThink) return;
         nextThink = Time.time + thinkInterval;
 
         foreach (var bot in Battalion.All)

@@ -23,7 +23,7 @@ public class CombatSystem : MonoBehaviour
 
     void Update()
     {
-        if (!nm.IsServer) return;
+        if (!nm.IsServer || !MatchManager.BattleRunning) return;
 
         float dt = Time.deltaTime;
         var all = Battalion.All;

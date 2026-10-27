@@ -15,6 +15,7 @@ MonoBehaviour:
   unitId: tufekli
   displayName: "T\xFCfekli"
   factionId: Faction_Default
+  maxSlots: 3
   soldierCount: 100
   defaultWidth: 25
   slotSpacing: 1.5

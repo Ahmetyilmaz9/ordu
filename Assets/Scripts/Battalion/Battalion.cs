@@ -125,6 +125,14 @@ public class Battalion : NetworkBehaviour
         hasFinalFacing = facing.sqrMagnitude > 0.01f;
         if (hasFinalFacing) finalFacing = Quaternion.LookRotation(facing);
 
+        // Yerleştirme: yürümez, kendi bölgesi içinde anında yerine konur.
+        if (MatchManager.Deploying)
+        {
+            transform.position = ArmyRules.ClampToZone(Team.Value, destination);
+            if (hasFinalFacing) transform.rotation = finalFacing;
+            moving = false;
+        }
+
         if (lineWidth > 0 && Type.Value == FormationType.Line)
         {
             int width = Mathf.Clamp(lineWidth, MinLineWidth, SoldierCount.Value);
@@ -260,8 +268,12 @@ public class Battalion : NetworkBehaviour
         return false;
     }
 
-    void StartTransition() =>
-        TransitionEndTime.Value = NetworkManager.ServerTime.Time + definition.formationChangeTime;
+    // Yerleştirmede dizilim anında değişir; savaşta süre ister.
+    void StartTransition()
+    {
+        if (!MatchManager.Deploying)
+            TransitionEndTime.Value = NetworkManager.ServerTime.Time + definition.formationChangeTime;
+    }
 
     void Update()
     {

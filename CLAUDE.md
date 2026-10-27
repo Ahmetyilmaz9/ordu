@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M5 + kargılı/sipahi tamamlandı (2026-10-28). Sıradaki: M6 — ordu kurma + eşleştirme.
+**Durum:** M6a tamamlandı (2026-10-28). Sıradaki: M6b — eşleştirme + barındırma (önce karar).
 
 ---
 
@@ -413,6 +413,16 @@ Mekanikler M3'ten hazırdı. Her oyuncu 5 bölükle doğar (aralık 38 m, kargı
 ### M6 — Ordu kurma ekranı + eşleştirme
 Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → savaş.
 10 slot, birim seçimi, Lobby ile eşleştirme, dedicated sunucu barındırma kararı.
+
+> **M6a — yapıldı ve test edildi.** `MatchManager` faz akışı:
+> Waiting → ArmySelect (90 sn) → Deploy (60 sn) → Battle (15 dk) → Ended; iki taraf hazırsa süre
+> beklenmez, süre biterse varsayılan ordu. `ArmyRules` (saf): 10 slot, tip başına `maxSlots`
+> (şimdilik hepsi 3), sunucu orduyu doğrular. Yerleştirme: bölükler sadece kendi takımına
+> görünür (`CheckObjectVisibility`, sunucu rakibe göndermez), savaşta `RevealAll` ile açılır;
+> emirler bölge içinde anında konumlar, dizilim geçişi süresiz. Savaş/bot sadece Battle fazında.
+> `MatchUI` (IMGUI): ordu paneli, yerde bölge çizgisi, Hazır, saat, sonuç. Kestirmeler: 3. oyuncu
+> izleyici, kopan oyuncunun takımı boşalmaz (yeniden bağlanma M6b), IMGUI arayüz.
+> **M6b (eşleştirme + barındırma)** ayrı: önce barındırma ve UGS hesabı kararı gerekiyor.
 
 ### M7 — Savaş sisi
 Per-client görünürlük (`NetworkShow` / `NetworkHide`).

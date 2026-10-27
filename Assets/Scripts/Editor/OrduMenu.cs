@@ -55,7 +55,8 @@ public static class OrduMenu
         // Maç saati ve zafer: sahneye yerleşik NetworkObject (NetworkManager objesine konamaz).
         var match = new GameObject("Match");
         match.AddComponent<NetworkObject>();
-        match.AddComponent<MatchManager>();
+        Set(match.AddComponent<MatchManager>(), "roster", AssetDatabase.LoadAssetAtPath<UnitRoster>(RosterPath));
+        match.AddComponent<MatchUI>();
 
         EditorSceneManager.SaveScene(scene);
         // Yeniden açınca sahne içi NetworkObject kimliği (GlobalObjectIdHash) kesin üretilir.
@@ -222,6 +223,26 @@ public static class OrduMenu
         Check(CombatMath.Shooters(120, 24, 0) == 120, "okçu: hepsi atar");
         Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 0f, 50f) - 12.5f) < 0.01f, "dibinden salvo: 50 × 0,25 = 12,5");
         Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 50f, 50f) - 5f) < 0.01f, "menzil sonunda %40");
+
+        // Ordu kurma ve yerleştirme
+        int[] max = { 3, 3, 3, 3, 3 };
+        Check(ArmyRules.IsValid(new byte[] { 3, 3, 2, 1, 1 }, max), "10 slot, limitler içinde: geçerli");
+        Check(!ArmyRules.IsValid(new byte[] { 3, 3, 3, 1, 1 }, max), "11 slot: geçersiz");
+        Check(!ArmyRules.IsValid(new byte[] { 4, 0, 0, 0, 0 }, max), "tip limiti aşıldı: geçersiz");
+        Check(!ArmyRules.IsValid(new byte[] { 0, 0, 0, 0, 0 }, max), "boş ordu: geçersiz");
+        Check(!ArmyRules.IsValid(new byte[] { 1, 1 }, max) && !ArmyRules.IsValid(null, max), "yanlış uzunluk/null: geçersiz");
+        var def = ArmyRules.Default(max);
+        Check(ArmyRules.IsValid(def, max) && def[0] + def[1] + def[2] + def[3] + def[4] == 10, "varsayılan ordu 10 slot ve geçerli");
+        Check(ArmyRules.Default(new[] { 1, 1 }).Length == 2 && ArmyRules.Default(new[] { 1, 1 })[0] == 1, "limit yetmezse olduğu kadar");
+
+        Check(ArmyRules.ClampToZone(0, new Vector3(0f, 0f, 30f)).z <= -ArmyRules.DeployFront, "mavi rakip yarıya konamaz");
+        Check(ArmyRules.ClampToZone(1, new Vector3(0f, 0f, -30f)).z >= ArmyRules.DeployFront, "kırmızı rakip yarıya konamaz");
+        Check(Mathf.Abs(ArmyRules.ClampToZone(0, new Vector3(500f, 0f, -70f)).x) < Battalion.MapHalfSize, "harita dışına konamaz");
+
+        var layout = ArmyRules.Layout(new[] { 30f, 30f, 30f }, 190f);
+        Check(layout[0].y == 0 && layout[2].y == 0 && Mathf.Abs(layout[1].x) < 0.01f, "üç bölük tek sırada, ortadaki merkezde");
+        var rows = ArmyRules.Layout(new[] { 100f, 100f }, 150f);
+        Check(rows[0].y == 0 && rows[1].y == 1 && Mathf.Abs(rows[1].x) < 0.01f, "sığmayan bir sıra geriye, ortalı");
 
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
     }

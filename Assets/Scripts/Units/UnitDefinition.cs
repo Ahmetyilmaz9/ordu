@@ -8,6 +8,9 @@ public class UnitDefinition : ScriptableObject
     public string displayName = "Piyade";
     public string factionId = "Faction_Default";
 
+    [Header("Ordu kurma")]
+    public int maxSlots = 3; // tip başına slot limiti (puan bütçesi yerine)
+
     [Header("Bölük")]
     public int soldierCount = 100;
     public int defaultWidth = 20;
