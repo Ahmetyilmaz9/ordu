@@ -13,7 +13,7 @@ public class BattalionSpawner : MonoBehaviour
     [SerializeField] Battalion battalionPrefab;
     [SerializeField] UnitRoster roster; // shortcut: her tipten bir bölük; ordu kurma ekranı M6'da
     [SerializeField] float spawnDistance = 40f;
-    [SerializeField] float spacing = 45f;
+    [SerializeField] float spacing = 38f; // 5 bölük × 38 m; en geniş hat (kargılı, 45 m) en dışta, harita içinde
 
     NetworkManager nm;
     int nextTeam;

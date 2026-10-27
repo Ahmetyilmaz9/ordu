@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M5 tamamlandı (2026-10-28). Sıradaki: M6 — ordu kurma + eşleştirme.
+**Durum:** M5 + kargılı/sipahi tamamlandı (2026-10-28). Sıradaki: M6 — ordu kurma + eşleştirme.
 
 ---
 
@@ -403,6 +403,12 @@ Okçu ve tüfekli. Doldurma penceresi mekaniği, etikette doldurma halkası.
 > Etikette doldurma çubuğu (rakipte de görünür). Kestirmeler: halka yerine çubuk; salvo
 > efekti çizgi (`VolleyRpc` herkese gider — M7'de görenlere sınırlanacak); zırh yok;
 > hedef seçme yok (en yakın), odak ateşi sonra.
+
+### M5.5 — Kargılı ve sipahi ✅ *(yol haritasında boşluktu, M6'dan önce eklendi)*
+Sadece veri: `Kargili` (180, savunma 14, `antiChargeFront` 0,7 → önden şarjın %70'i
+saldırana döner) ve `Sipahi` (50, koşu 9 m/sn, `chargeImpact` 0,15, seyrek dizilim).
+Mekanikler M3'ten hazırdı. Her oyuncu 5 bölükle doğar (aralık 38 m, kargılı en dışta).
+> **Yapıldı ve test edildi:** sipahi okçuyu ezer, kargılıya önden çarpan sipahi erir.
 
 ### M6 — Ordu kurma ekranı + eşleştirme
 Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → savaş.

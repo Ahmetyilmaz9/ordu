@@ -28,7 +28,7 @@ public static class OrduMenu
         EditorSceneManager.SaveScene(scene, ScenePath);
 
         var cam = Camera.main.transform;
-        cam.position = new Vector3(0f, 70f, -80f);
+        cam.position = new Vector3(0f, 95f, -105f);
         cam.LookAt(Vector3.zero);
 
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
@@ -90,6 +90,23 @@ public static class OrduMenu
                 d.attack = 5f; d.defense = 5f; d.discipline = 1.3f; d.chargeImpact = 0.03f; // yakında çöker
                 d.range = 50f; d.reloadTime = 18f; d.killsPerShot = 0.25f; d.shootingRanks = 2; // aralıklı, yıkıcı
                 d.firearmMoraleMultiplier = 2f; // barut kuralı
+            }),
+            Unit("Sipahi", material, d =>
+            {
+                d.unitId = "sipahi"; d.displayName = "Sipahi";
+                d.soldierCount = 50; d.defaultWidth = 10; d.slotSpacing = 2f; // atlı, seyrek
+                d.walkSpeed = 4f; d.runSpeed = 9f; d.staminaDrainPerSec = 1f / 30f;
+                d.attack = 12f; d.defense = 8f; d.discipline = 1.1f;
+                d.chargeImpact = 0.15f; // 10 cephe × 9 m/sn × 0,15 ≈ 13 ölü tek darbede
+                d.soldierScale = 1.1f;
+            }),
+            Unit("Kargili", material, d =>
+            {
+                d.unitId = "kargili"; d.displayName = "Kargılı";
+                d.soldierCount = 180; d.defaultWidth = 30;
+                d.walkSpeed = 2.2f; d.runSpeed = 4f;
+                d.attack = 7f; d.defense = 14f; d.chargeImpact = 0.02f;
+                d.antiChargeFront = 0.7f; // önden şarjın %70'i saldırana döner: süvariye duvar
             }),
         };
         EditorUtility.SetDirty(roster);
