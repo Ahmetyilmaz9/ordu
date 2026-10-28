@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M7 tamamlandı (2026-10-28). Sıradaki: M8 — görsel geçiş.
+**Durum:** M8a tamamlandı (2026-10-28). Sıradaki: M8b — görsel geçiş.
 
 ---
 
@@ -352,7 +352,7 @@ istemciden verilen emir sunucuya ulaşıp sonuç geri replike oluyor.
 ### M2 — Formasyon ✅
 Formasyon tipleri, süreli geçiş, sağ tıkı sürükleyerek hem konum hem yön verme.
 
-> **Yapıldı ve test edildi.** Kontroller: **1–4** Hat/Kolon/Kare/Kama ·
+> **Yapıldı ve test edildi.** Kontroller (M8a'da değişti, bkz. orası): Hat/Kolon/Kare/Kama ·
 > **sağ tık** git (varışta yön değişmez) · **sağ tık sürükle** hat çiz: konum + yön +
 > genişlik (çoklu seçimde çizgi bölüklere eşit bölünür). Şekil/genişlik değişince
 > `formationChangeTime` (4,5 sn) boyunca hız × `transitionSpeedFactor` (0,4); bitiş
@@ -446,7 +446,21 @@ Per-client görünürlük (`NetworkShow` / `NetworkHide`).
 > uyar (kimseyi görmezse rakip tarafa ilerler). Maç bitince herkes her şeyi görür.
 > Not: okçu menzili (70) varsayılan görüşten (60) uzun — tam menzil için başka bölük görmeli.
 
-### M8 — Görsel geçiş
+### M8a — Total War tarzı kontroller ✅ *(kullanıcı isteğiyle eklendi, M8b'den önce)*
+> **Yapıldı ve test edildi.**
+> - **Kamera** (`RtsCamera`): WASD/oklar/ekran kenarı kaydırır, Q/E ya da orta tuş döndürür,
+>   tekerlek yakınlaştırır; kırmızı takım kendi arkasından başlar.
+> - **Seçim** (`CommandInput`): sol tık seç (Shift ekle/çıkar), sol sürükle kutu, çift tık ekrandaki
+>   aynı tip, Ctrl+A hepsi, **Ctrl+0–9** grup ata, **0–9** grubu seç (iki kez: kamera gider).
+> - **Emir:** sağ tık zemine git · **düşmana sağ tık = saldır** (sunucu `AttackRpc`: hedefi takip eder,
+>   sis/ölüm olunca durur; atıcı menzilin %85'inde durup döner ve **önce hedefe ateş eder** — odak ateşi)
+>   · sağ sürükle hat çiz + **hayalet önizleme** (varış slotları) · **Backspace** dur (`HaltRpc`).
+> - **Formasyon tuşları Z/X/C/V** (rakamlar artık grup) · R koş · F ateş.
+> - **Birim kartları** (`UnitCards`): altta kendi bölüklerin, grup no, sayı, durum, moral/doldurma;
+>   tıkla seç, çift tıkla kamera. Kartların üstündeki tık sahaya geçmez.
+> - Bot artık `AttackRpc` kullanır.
+
+### M8b — Görsel geçiş
 VAT pipeline, minyon modelleri, duman, LOD.
 
 ### M9+ — Topçu

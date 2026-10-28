@@ -131,6 +131,19 @@ public class CombatSystem : MonoBehaviour
         var def = shooter.Definition;
         Battalion target = null;
         float distance = def.range;
+        // Odak ateşi: saldırı hedefi menzil ve açı içindeyse ona, değilse en yakına.
+        var focus = shooter.AttackTarget;
+        if (focus != null && focus.IsSpawned && focus.AliveCount > 0 && FogSystem.TeamSees(shooter.Team.Value, focus))
+        {
+            Vector3 toFocus = focus.transform.position - shooter.transform.position;
+            toFocus.y = 0f;
+            if (toFocus.magnitude <= def.range && Vector3.Angle(shooter.transform.forward, toFocus) <= fireArcDegrees)
+            {
+                target = focus;
+                distance = toFocus.magnitude;
+            }
+        }
+        if (target == null)
         foreach (var t in all)
         {
             if (t.Team.Value == shooter.Team.Value || t.AliveCount == 0 || !FogSystem.TeamSees(shooter.Team.Value, t)) continue;

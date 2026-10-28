@@ -27,9 +27,7 @@ public static class OrduMenu
         var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
         EditorSceneManager.SaveScene(scene, ScenePath);
 
-        var cam = Camera.main.transform;
-        cam.position = new Vector3(0f, 95f, -105f);
-        cam.LookAt(Vector3.zero);
+        Camera.main.gameObject.AddComponent<RtsCamera>(); // konumu kendisi yönetir
 
         var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ground.name = "Ground";
@@ -49,6 +47,7 @@ public static class OrduMenu
         Set(spawner, "battalionPrefab", prefab.GetComponent<Battalion>());
         Set(spawner, "roster", AssetDatabase.LoadAssetAtPath<UnitRoster>(RosterPath));
         nmGo.AddComponent<CommandInput>();
+        nmGo.AddComponent<UnitCards>();
         nmGo.AddComponent<CombatSystem>();
         nmGo.AddComponent<BotCommander>();
         nmGo.AddComponent<FogSystem>();

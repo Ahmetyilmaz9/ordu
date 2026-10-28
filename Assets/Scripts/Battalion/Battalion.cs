@@ -39,6 +39,9 @@ public class Battalion : NetworkBehaviour
     Vector3 destination;
     Quaternion finalFacing;
     bool moving, hasFinalFacing;
+
+    // Sunucu: saldırı emrinin hedefi (takip edilir; atıcı menzilde durur ve önce buna ateş eder).
+    public Battalion AttackTarget { get; private set; }
     float stamina = 1f;
     float morale = 100f, moraleCeiling = 100f;
     bool bannerLost;
@@ -115,6 +118,7 @@ public class Battalion : NetworkBehaviour
         // Güven sınırı: sadece sahibi emir verebilir, değerler geçerli olmalı.
         if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
         if (!IsFinite(target) || !IsFinite(facing)) return;
+        AttackTarget = null; // yeni hareket emri saldırıyı bozar
 
         destination = new Vector3(
             Mathf.Clamp(target.x, -MapHalfSize, MapHalfSize), 0f,
@@ -230,8 +234,57 @@ public class Battalion : NetworkBehaviour
         Status.Value = next;
     }
 
+    // Saldır: düşman bölüğe git ve savaş; hareket ederse takip et.
+    [Rpc(SendTo.Server)]
+    public void AttackRpc(NetworkObjectReference targetRef, RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting || MatchManager.Deploying) return;
+        // Güven sınırı: hedef var olmalı, düşman olmalı ve takım onu görüyor olmalı (sisli hedefe emir yok).
+        if (!targetRef.TryGet(out NetworkObject obj) || !obj.TryGetComponent(out Battalion target)) return;
+        if (target.Team.Value == Team.Value || !FogSystem.TeamSees(Team.Value, target)) return;
+        AttackTarget = target;
+        hasFinalFacing = false;
+    }
+
+    [Rpc(SendTo.Server)]
+    public void HaltRpc(RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId || IsRouting) return;
+        AttackTarget = null;
+        moving = false;
+    }
+
+    // Saldırı hedefini takip: hedef kaybolursa (öldü, kaçıp sise girdi) dur.
+    void FollowAttackTarget(float dt)
+    {
+        var target = AttackTarget;
+        if (target == null) return;
+        if (!target.IsSpawned || !FogSystem.TeamSees(Team.Value, target))
+        {
+            AttackTarget = null;
+            moving = false;
+            return;
+        }
+
+        Vector3 to = target.transform.position - transform.position;
+        to.y = 0f;
+        if (IsRanged && to.magnitude <= definition.range * 0.85f)
+        {
+            // Menzilde: dur, hedefe dön (ateşi CombatSystem açar).
+            moving = false;
+            HalfExtents(out float maxRadius);
+            float maxTurnDeg = Formation.MaxTurnRate(definition.runSpeed, maxRadius) * Mathf.Rad2Deg * dt;
+            if (to.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), maxTurnDeg);
+            return;
+        }
+        destination = new Vector3(target.transform.position.x, 0f, target.transform.position.z);
+        moving = true;
+    }
+
     void StartRout()
     {
+        AttackTarget = null;
         // Kontrol oyuncudan çıkar, en yakın harita kenarına koşar. Yakındaki dostlar sarsılır.
         // Her kaçış moral tavanını düşürür: 75, 50, 25 → üçüncü kaçıştan toparlanılamaz (25 < RallyAbove).
         moraleCeiling -= Morale.CeilingDropPerRout;
@@ -291,6 +344,7 @@ public class Battalion : NetworkBehaviour
         byte percent = (byte)Mathf.RoundToInt(stamina * 100f);
         if (percent != StaminaPercent.Value) StaminaPercent.Value = percent;
 
+        if (!IsRouting) FollowAttackTarget(dt);
         if (moving) Move(runningNow, dt);
 
         // Kaçan bölük harita kenarına varınca sahadan çıkar (zaferde yok sayılır).
