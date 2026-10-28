@@ -210,6 +210,8 @@ public static class OrduMenu
               && Morale.SidePressurePerSec(HitSide.Front, FormationType.Line) == 0f
               && Morale.SidePressurePerSec(HitSide.Rear, FormationType.Square) == 0f, "moral baskısı: arka > kanat, cephe/kare 0");
         Check(Morale.AttackFactor(MoraleState.Routing) == 0f, "kaçan dövüşmez");
+        Check(Morale.FleePoint(0, new Vector3(30f, 0f, 60f), 100f) == new Vector3(30f, 0f, -100f), "mavi kaçan kendi (güney) kenarına koşar");
+        Check(Morale.FleePoint(1, new Vector3(-20f, 0f, -70f), 100f) == new Vector3(-20f, 0f, 100f), "kırmızı kaçan kendi (kuzey) kenarına koşar");
 
         // Zafer
         Check(MatchRules.Decide(true, true, 100, 50, false) == MatchManager.NoWinner, "süre varken iki taraf da sahada: devam");
@@ -252,6 +254,18 @@ public static class OrduMenu
         Check(!NetworkBootstrap.TryParseEndpoint("1.2.3", 7777, out _, out _), "eksik IP reddedilir");
         Check(!NetworkBootstrap.TryParseEndpoint("1.2.3.4:0", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("1.2.3.4:99999", 7777, out _, out _), "geçersiz port reddedilir");
         Check(!NetworkBootstrap.TryParseEndpoint("", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("::1", 7777, out _, out _), "boş ve IPv6 reddedilir");
+
+        // Yakın dövüş görseli yardımcıları
+        Check(Mathf.Abs(CombatMath.DistanceToObb(a, new Vector2(0f, 8f)) - 5f) < 0.001f, "dikdörtgenin 5 m önündeki nokta: 5 m");
+        Check(CombatMath.DistanceToObb(a, new Vector2(3f, 1f)) == 0f, "içerideki nokta: 0");
+        Check(Mathf.Abs(CombatMath.DistanceToObb(a, new Vector2(18f, 7f)) - 5f) < 0.001f, "köşeden çapraz: 3-4-5");
+        bool jitterOk = true;
+        for (int i = 0; i < 200; i++)
+        {
+            var j = CombatMath.SoldierJitter(i, 0.3f);
+            jitterOk &= Mathf.Abs(j.x) <= 0.3f && Mathf.Abs(j.y) <= 0.3f && j == CombatMath.SoldierJitter(i, 0.3f);
+        }
+        Check(jitterOk, "asker sapması sınır içinde ve her seferinde aynı");
 
         // Savaş sisi
         Check(FogRules.Sees(59f, 60f, false) && !FogRules.Sees(61f, 60f, false), "görüş sınırı: 60 m içi görünür, dışı değil");

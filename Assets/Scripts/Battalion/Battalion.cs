@@ -42,6 +42,10 @@ public class Battalion : NetworkBehaviour
 
     // Sunucu: saldırı emrinin hedefi (takip edilir; atıcı menzilde durur ve önce buna ateş eder).
     public Battalion AttackTarget { get; private set; }
+
+    public const float MeleePenetration = 3f;   // hatlar bu kadar iç içe geçebilir (kutu kenarında durmasın)
+    public const float AutoChargeDistance = 35f; // saldırıda yakın dövüşçü hedefe bu kadar kala kendiliğinden koşar
+    bool autoCharge;
     float stamina = 1f;
     float morale = 100f, moraleCeiling = 100f;
     bool bannerLost;
@@ -139,12 +143,8 @@ public class Battalion : NetworkBehaviour
 
         if (lineWidth > 0 && Type.Value == FormationType.Line)
         {
-            int width = Mathf.Clamp(lineWidth, MinLineWidth, SoldierCount.Value);
-            if (width != FormationWidth.Value)
-            {
-                FormationWidth.Value = width;
-                StartTransition();
-            }
+            // Genişlik yolda değişir, askerler yeni yerlerine akar; yavaşlatan geçiş sadece şekil değişiminde.
+            FormationWidth.Value = Mathf.Clamp(lineWidth, MinLineWidth, SoldierCount.Value);
         }
     }
 
@@ -279,20 +279,18 @@ public class Battalion : NetworkBehaviour
             return;
         }
         destination = new Vector3(target.transform.position.x, 0f, target.transform.position.z);
+        autoCharge = !IsRanged && to.magnitude < AutoChargeDistance;
         moving = true;
     }
 
     void StartRout()
     {
         AttackTarget = null;
-        // Kontrol oyuncudan çıkar, en yakın harita kenarına koşar. Yakındaki dostlar sarsılır.
+        // Kontrol oyuncudan çıkar, kendi tarafının kenarına koşar (düşmanın arkasına değil). Yakındaki dostlar sarsılır.
         // Her kaçış moral tavanını düşürür: 75, 50, 25 → üçüncü kaçıştan toparlanılamaz (25 < RallyAbove).
         moraleCeiling -= Morale.CeilingDropPerRout;
         Vector3 p = transform.position;
-        Vector3 edge = Mathf.Abs(p.x) > Mathf.Abs(p.z)
-            ? new Vector3(Mathf.Sign(p.x) * MapHalfSize, 0f, p.z)
-            : new Vector3(p.x, 0f, Mathf.Sign(p.z) * MapHalfSize);
-        destination = edge;
+        destination = Morale.FleePoint(Team.Value, p, MapHalfSize);
         moving = true;
         hasFinalFacing = false;
 
@@ -339,7 +337,8 @@ public class Battalion : NetworkBehaviour
         float dt = Time.deltaTime;
         ServerSpeed = 0f;
         UpdateMorale(dt);
-        bool runningNow = IsRouting || (Running.Value && moving && stamina > 0f); // kaçan yorgunluğa bakmaz
+        autoCharge &= AttackTarget != null;
+        bool runningNow = IsRouting || ((Running.Value || autoCharge) && moving && stamina > 0f); // kaçan yorgunluğa bakmaz
         stamina = Mathf.Clamp01(stamina + (runningNow ? -definition.staminaDrainPerSec : definition.staminaRegenPerSec) * dt);
         byte percent = (byte)Mathf.RoundToInt(stamina * 100f);
         if (percent != StaminaPercent.Value) StaminaPercent.Value = percent;
@@ -363,25 +362,23 @@ public class Battalion : NetworkBehaviour
         toTarget.y = 0f;
         float distance = toTarget.magnitude;
 
+        // Total War gibi: bölük yerinde dönüp beklemez, emri aldığı an hedefe yürür. Yön (varış yönü
+        // ya da yürüyüş yönü) yolda, dönüş hızı sınırıyla çevrilir; askerler yeni slotlarına akarak geçer.
+        Quaternion wanted = hasFinalFacing ? finalFacing
+            : distance > 0.3f ? Quaternion.LookRotation(toTarget) : transform.rotation;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, wanted, maxTurnDeg);
+
         if (distance < 0.3f)
         {
-            // Vardı: istenen yöne dön, sonra dur.
-            if (hasFinalFacing && Quaternion.Angle(transform.rotation, finalFacing) > 0.5f)
-            {
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, finalFacing, maxTurnDeg);
-                return;
-            }
-            moving = false;
+            // Vardı; varış yönüne dönmesi bitince dur.
+            if (Quaternion.Angle(transform.rotation, wanted) <= 0.5f) moving = false;
             return;
         }
 
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(toTarget), maxTurnDeg);
-
-        // Hedefe dönük değilken yavaşlar, arkadaysa yerinde döner. Geçişte daha da yavaş.
-        float facing = Mathf.Max(0f, Vector3.Dot(transform.forward, toTarget / distance));
-        float speed = (running ? definition.runSpeed : definition.walkSpeed) * facing
+        // Geçişte (formasyon değişimi) yavaş.
+        float speed = (running ? definition.runSpeed : definition.walkSpeed)
                       * (IsTransitioning ? definition.transitionSpeedFactor : 1f);
-        Vector3 step = transform.forward * Mathf.Min(speed * dt, distance);
+        Vector3 step = toTarget / distance * Mathf.Min(speed * dt, distance);
 
         if (BlockedByEnemy(transform.position + step, step)) return; // temas: içine giremez, geri çekilebilir
         transform.position += step;
@@ -391,12 +388,13 @@ public class Battalion : NetworkBehaviour
     // Yeni konum bir düşmanla çakışıyor ve adım ona doğruysa hareket yok.
     bool BlockedByEnemy(Vector3 next, Vector3 step)
     {
+        if (IsRouting) return false; // kaçan kimseye takılmaz, düşmanın içinden geçip kaçar
         Obb self = GetObb(next);
         foreach (var other in All)
         {
             if (other == this || other.Team.Value == Team.Value) continue;
             Vector3 toOther = other.transform.position - next;
-            if (Vector3.Dot(step, toOther) > 0f && CombatMath.Overlaps(self, other.GetObb(), 0f))
+            if (Vector3.Dot(step, toOther) > 0f && CombatMath.Overlaps(self, other.GetObb(), -MeleePenetration))
                 return true;
         }
         return false;

@@ -10,7 +10,8 @@ public class CombatSystem : MonoBehaviour
     [SerializeField] float contactMargin = 1f;   // bu kadar yakın dikdörtgenler temasta sayılır
     [SerializeField] float lethality = 0.05f;    // cephedeki asker × saldırı/savunma × bu = öldürme/sn
     [SerializeField] float transitionVulnerability = 1.5f; // formasyon değiştiren bölük daha çok kayıp verir
-    [SerializeField] float fireArcDegrees = 60f;  // menzilli bölük ancak önündeki bu açıya ateş eder
+    [SerializeField] float fireArcDegrees = 60f;
+    [SerializeField] float pursuitMultiplier = 1.5f; // kaçan bölüğü kovalayan daha çok öldürür  // menzilli bölük ancak önündeki bu açıya ateş eder
 
     NetworkManager nm;
     readonly Dictionary<(ulong, ulong), float> pendingKills = new Dictionary<(ulong, ulong), float>();
@@ -100,7 +101,8 @@ public class CombatSystem : MonoBehaviour
     float MeleeKills(Battalion attacker, int fighters, Battalion defender, HitSide sideOnDefender)
     {
         float fatigue = (0.5f + 0.5f * attacker.Stamina01) * Morale.AttackFactor(attacker.Status.Value);
-        float vulnerable = defender.IsTransitioning ? transitionVulnerability : 1f;
+        float vulnerable = (defender.IsTransitioning ? transitionVulnerability : 1f)
+                           * (defender.IsRouting ? pursuitMultiplier : 1f);
         return fighters * lethality * attacker.Definition.attack / defender.Definition.defense * fatigue
                * CombatMath.SideMultiplier(sideOnDefender, defender.Type.Value) * vulnerable;
     }

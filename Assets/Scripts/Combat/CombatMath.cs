@@ -34,6 +34,23 @@ public static class CombatMath
     static bool Separated(in Obb a, in Obb b, Vector2 d, Vector2 axis, float margin) =>
         Mathf.Abs(Vector2.Dot(d, axis)) > a.Radius(axis) + b.Radius(axis) + margin;
 
+    // Noktanın dikdörtgene uzaklığı (içindeyse 0). İstemci yakın dövüşte kimin dövüşeceğini seçerken kullanır.
+    public static float DistanceToObb(in Obb o, Vector2 point)
+    {
+        Vector2 d = point - o.Center;
+        float x = Mathf.Max(0f, Mathf.Abs(Vector2.Dot(d, o.Right)) - o.Half.x);
+        float z = Mathf.Max(0f, Mathf.Abs(Vector2.Dot(d, o.Forward)) - o.Half.y);
+        return Mathf.Sqrt(x * x + z * z);
+    }
+
+    // Askere sabit, küçük bir dizilim sapması (her istemcide aynı): kutu gibi kusursuz sıralar olmasın.
+    public static Vector2 SoldierJitter(int slot, float amount)
+    {
+        uint h = (uint)slot * 2654435761u;
+        float a = (h & 0xFFFF) / 65535f, b = (h >> 16) / 65535f;
+        return new Vector2(a - 0.5f, b - 0.5f) * (2f * amount);
+    }
+
     // Saldıran, savunanın hangi kenarına geliyor? Yerel yön yarım boyutlara göre normalize edilir,
     // böylece geniş bir hattın ucuna yakın gelen saldırı da doğru kenara düşer.
     public static HitSide SideOf(in Obb defender, Vector2 attackerCenter)

@@ -89,7 +89,9 @@ Moral kaynakları: alınan kayıp oranı · kanattan/arkadan saldırı · yakın
 bölüğün kaçması · **sancaktarın ölmesi** · yorgunluk · tüfek salvosu (barut kuralı).
 
 Akış: normal → sarsılma (daha zayıf dövüşür) → **rout** (bölük kontrolden çıkar,
-en yakın harita kenarına kaçar) → toparlanma şansı.
+**kendi tarafının** harita kenarına kaçar, düşmanlara takılmadan içlerinden geçer) → toparlanma şansı.
+Kaçan hiç vurmaz; temas sürdükçe kovalayan onu arkadan vurur ve ×1,5 kovalama cezası uygulanır
+(`pursuitMultiplier`). Kaçan askerler görselde dağılır, düello yapmaz.
 
 **Toparlanma:**
 - Peşinde kimse yoksa moral yavaş yavaş dolar
@@ -114,6 +116,9 @@ bölüklerde kazanır.
   `maks dönüş (rad/sn) = asker koşu hızı ÷ merkezden en uzak slotun mesafesi`.
   Uçtaki asker asla koşu hızını aşmaz. Geniş hat yavaş döner (kanattan yakalanma riski),
   kolon çeviktir. Değer elle girilmez; formasyon genişliği + `UnitDefinition` hızından gelir.
+- **Hareket (2026-10-28 değişti):** bölük yerinde dönüp beklemez, emri aldığı an hedefe dümdüz
+  yürür; yön yolda (dönüş hızı sınırıyla) çevrilir, askerler yeni slotlarına akar. Genişlik değişimi
+  geçiş sayılmaz; yavaşlatan 4–5 sn'lik geçiş sadece şekil değişiminde (Z/X/C/V).
 - Askerler slota ışınlanmaz, sınırlı hızla **takip eder** (sadece istemci görseli).
 
 ### Savaş çözümü (bölük seviyesinde)
@@ -459,6 +464,14 @@ Per-client görünürlük (`NetworkShow` / `NetworkHide`).
 > - **Birim kartları** (`UnitCards`): altta kendi bölüklerin, grup no, sayı, durum, moral/doldurma;
 >   tıkla seç, çift tıkla kamera. Kartların üstündeki tık sahaya geçmez.
 > - Bot artık `AttackRpc` kullanır.
+
+> **Yakın dövüş hissi (M8a ek) — yapıldı ve test edildi.** Kayıplar yine sunucuda bölük
+> seviyesinde; görsel tamamen istemcide (`BattalionView`): temastaki bölükte düşman dikdörtgenine
+> 7 m yakın her asker en yakın düşman askerini bulur, 1,1 m dövüş mesafesinde durur, ileri-geri
+> hamle yapar, aynı rakibe yığılmamak için yana dağılır; arka saflar 2 m öne yüklenir. Her askerin
+> sabit küçük dizilim sapması, hız farkı ve yürürken sallanması var (kutu görünmesin). Sunucu:
+> hatlar 3 m iç içe geçebilir (`MeleePenetration`), saldırı emrinde yakın dövüşçü hedefe 35 m
+> kala kendiliğinden koşar (`AutoChargeDistance`, Total War gibi).
 
 ### M8b — Görsel geçiş
 VAT pipeline, minyon modelleri, duman, LOD.

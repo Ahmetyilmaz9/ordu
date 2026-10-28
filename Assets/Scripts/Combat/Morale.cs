@@ -33,6 +33,10 @@ public static class Morale
         return side == HitSide.Rear ? RearPerSec : FlankPerSec;
     }
 
+    // Kaçış noktası: kendi tarafının kenarı (takım 0 güney, 1 kuzey), aynı x hizasında.
+    public static Vector3 FleePoint(byte team, Vector3 from, float mapHalfSize) =>
+        new Vector3(from.x, 0f, team == 0 ? -mapHalfSize : mapHalfSize);
+
     // Kaçan bölük sadece toparlanma eşiğini geçince döner; diğerleri morale göre.
     public static MoraleState Evaluate(MoraleState current, float morale)
     {
