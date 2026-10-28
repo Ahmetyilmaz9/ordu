@@ -21,11 +21,22 @@ public static class Morale
     public const float RallySupportPerSec = 4f;   // + yakında sağlam dost varsa
     public const float CeilingDropPerRout = 25f; // her kaçışta: 75 → 50 → 25; üçüncü kaçıştan dönülmez
 
+    // Hızlı kayıp şoku (Total War): son saniyelerde çok adam kaybeden bölük her yeni kayıpta daha çok sarsılır.
+    public const float RecentLossWeight = 4f;      // son kayıpların bölüğe oranı × bu = ek çarpan
+    public const float RecentLossHalfLife = 5f;    // sn; "son kayıplar" bu sürede yarıya iner
+
     public const float EnemyNearRadius = 25f;
     public const float FriendRadius = 30f;
 
     // Bir askerin kaybı (disiplin, moral vuruşunu alan tarafta uygulanır).
     public static float CasualtyLoss(int slotCount) => CasualtyWeight / Mathf.Max(1, slotCount);
+
+    // Örn. son 5 sn'de bölüğün %10'u öldüyse her yeni kayıp ×1,4 moral götürür.
+    public static float LossShock(float recentLosses, int slotCount) =>
+        1f + RecentLossWeight * recentLosses / Mathf.Max(1, slotCount);
+
+    public static float DecayRecentLosses(float recentLosses, float dt) =>
+        recentLosses * Mathf.Pow(0.5f, dt / RecentLossHalfLife);
 
     public static float SidePressurePerSec(HitSide side, FormationType defenderType)
     {

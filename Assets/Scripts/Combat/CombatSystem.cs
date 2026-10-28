@@ -8,7 +8,6 @@ using UnityEngine;
 public class CombatSystem : MonoBehaviour
 {
     [SerializeField] float contactMargin = 1f;   // bu kadar yakın dikdörtgenler temasta sayılır
-    [SerializeField] float lethality = 0.05f;    // cephedeki asker × saldırı/savunma × bu = öldürme/sn
     [SerializeField] float transitionVulnerability = 1.5f; // formasyon değiştiren bölük daha çok kayıp verir
     [SerializeField] float fireArcDegrees = 60f;
     [SerializeField] float pursuitMultiplier = 1.5f; // kaçan bölüğü kovalayan daha çok öldürür  // menzilli bölük ancak önündeki bu açıya ateş eder
@@ -103,7 +102,7 @@ public class CombatSystem : MonoBehaviour
         float fatigue = (0.5f + 0.5f * attacker.Stamina01) * Morale.AttackFactor(attacker.Status.Value);
         float vulnerable = (defender.IsTransitioning ? transitionVulnerability : 1f)
                            * (defender.IsRouting ? pursuitMultiplier : 1f);
-        return fighters * lethality * attacker.Definition.attack / defender.Definition.defense * fatigue
+        return CombatMath.MeleeKillsPerSec(fighters, attacker.Definition, defender.Definition) * fatigue
                * CombatMath.SideMultiplier(sideOnDefender, defender.Type.Value) * vulnerable;
     }
 
@@ -164,7 +163,7 @@ public class CombatSystem : MonoBehaviour
 
         int width = Formation.EffectiveWidth(shooter.Type.Value, shooter.FormationWidth.Value, shooter.SoldierCount.Value);
         int shooters = CombatMath.Shooters(shooter.AliveCount, width, def.shootingRanks);
-        float kills = CombatMath.VolleyKills(shooters, def.killsPerShot, distance, def.range)
+        float kills = CombatMath.VolleyKills(shooters, def, target.Definition, distance)
                       * Morale.AttackFactor(shooter.Status.Value)
                       * CombatMath.SideMultiplier(side, target.Type.Value)
                       * (target.IsTransitioning ? transitionVulnerability : 1f);

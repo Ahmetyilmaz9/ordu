@@ -88,6 +88,9 @@ Total War hissinin asıl kaynağı kayıp değil, bölüklerin kırılıp kaçma
 Moral kaynakları: alınan kayıp oranı · kanattan/arkadan saldırı · yakındaki dost
 bölüğün kaçması · **sancaktarın ölmesi** · yorgunluk · tüfek salvosu (barut kuralı).
 
+**Hızlı kayıp şoku:** son saniyelerde çok adam kaybeden bölük her yeni kayıpta daha çok sarsılır
+(son kayıp oranı × 4 ek çarpan, 5 sn yarı ömür; %10 kayıp → ×1,4). Okçu disiplini 0,7.
+
 Akış: normal → sarsılma (daha zayıf dövüşür) → **rout** (bölük kontrolden çıkar,
 **kendi tarafının** harita kenarına kaçar, düşmanlara takılmadan içlerinden geçer) → toparlanma şansı.
 Kaçan hiç vurmaz; temas sürdükçe kovalayan onu arkadan vurur ve ×1,5 kovalama cezası uygulanır
@@ -128,6 +131,13 @@ Tek tek düello simüle edilmez. Sunucu bölük-vs-bölük çözer:
 - **Kayıp oranı** = f(saldırı, savunma, temas cephesi, arazi, kuşatma açısı)
 - **Kanat/arka çarpanı:** saldıranın, savunanın yön vektörüne göre açısı.
   Taktik derinliğin yarısı burada.
+- **Vuruş modeli (2026-10-28, Total War tarzı):** dövüşen asker saniyede 0,6 vuruş dener;
+  isabet = %35 + (yakın saldırı − yakın savunma)/100 (%8–%90); vuruş hasarı = temel hasar ×
+  (1 − 0,75 × zırh%) + zırh delici; asker canı 100. Kargının `bonusVsMounted`'i atlıya karşı saldırı ve
+  hasara eklenir. Ok/kurşun aynı formül: atıcı × `missileAccuracy` × mesafe düşüşü × hasar / can —
+  okçunun delmesi 0 (zırhta erir), tüfeğin delmesi yüksek. Değerler `OrduMenu.UnitSpecs`'te;
+  **Ordu → Denge → Önerilen Birim Değerlerini Uygula** dosyalara yazar. Ölçü: kargılı okçuya önden
+  ~2,4 ölü/sn (eski formülle 1,4; okçu ~46 sn'de kırılıyordu).
 
 ### Savaş sisi
 Var. **Sunucu, oyuncunun göremediği bölüklerin verisini o istemciye hiç göndermemeli.**
@@ -371,7 +381,7 @@ Bölük-vs-bölük çarpışma çözümü, temas cephesi, kanat çarpanı, tekil
 
 > **Yapıldı ve test edildi.** `Combat/`: `AliveMask` (256 bit), `CombatMath` (saf:
 > dikdörtgen teması, vurulan kenar, temas cephesi, yöne göre ölüm, kanat/arka çarpanı),
-> `CombatSystem` (sunucu: temas → kayıp/sn = cephedeki asker × lethality × saldırı/savunma ×
+> `CombatSystem` (sunucu: temas → kayıp/sn = cephedeki asker × vuruş modeli (bkz. "Savaş çözümü") ×
 > yorgunluk × kenar çarpanı × geçiş cezası; temasın ilk karesinde şarj darbesi = asker × hız ×
 > `chargeImpact`, kargı önden `antiChargeFront` oranında geri yansıtır), `BotCommander`.
 > Temasta düşmanın içine yürünemez, geri çekilmek serbest. Kontroller: **R** koş/yürü.

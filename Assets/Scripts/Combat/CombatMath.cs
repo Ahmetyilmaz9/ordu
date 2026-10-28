@@ -88,10 +88,34 @@ public static class CombatMath
     public static int Shooters(int alive, int width, int shootingRanks) =>
         shootingRanks <= 0 ? alive : Mathf.Min(alive, width * shootingRanks);
 
-    // Salvo öldürmesi: menzil sonunda isabet %40'a düşer.
-    // shortcut: zırh yok; okçunun "zırha karşı zayıf" olması zırh istatistiği gelince.
-    public static float VolleyKills(int shooters, float killsPerShot, float distance, float range) =>
-        shooters * killsPerShot * Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(distance / Mathf.Max(range, 0.01f)));
+    // ---- Total War tarzı vuruş modeli ----
+
+    public const float MeleeAttacksPerSec = 0.6f; // dövüşen asker başına saniyede vuruş denemesi
+
+    // İsabet: %35 + (saldırı − savunma)/100, %8–%90 arasında.
+    public static float HitChance(float attack, float defense) =>
+        Mathf.Clamp(0.35f + (attack - defense) / 100f, 0.08f, 0.9f);
+
+    // Vuruş hasarı: zırh temel hasarın ortalama %75'i oranında (zırh %) azaltır, delici kısım hep geçer.
+    public static float DamagePerHit(float baseDamage, float armorPiercing, float armor) =>
+        baseDamage * (1f - 0.75f * Mathf.Clamp01(armor / 100f)) + armorPiercing;
+
+    // Yakın dövüşte saniyede öldürülen asker (çarpanlardan önce).
+    public static float MeleeKillsPerSec(int fighters, UnitDefinition attacker, UnitDefinition defender)
+    {
+        float bonus = defender.mounted ? attacker.bonusVsMounted : 0f; // kargı atlıya karşı
+        float chance = HitChance(attacker.meleeAttack + bonus, defender.meleeDefense);
+        float damage = DamagePerHit(attacker.weaponDamage + bonus, attacker.armorPiercing, defender.armor);
+        return fighters * MeleeAttacksPerSec * chance * damage / Mathf.Max(1f, defender.hitPoints);
+    }
+
+    // Salvoda öldürülen asker: isabet menzil sonunda %40'a düşer; okçunun düşük delmesi zırhta erir.
+    public static float VolleyKills(int shooters, UnitDefinition shooter, UnitDefinition target, float distance)
+    {
+        float falloff = Mathf.Lerp(1f, 0.4f, Mathf.Clamp01(distance / Mathf.Max(shooter.range, 0.01f)));
+        float damage = DamagePerHit(shooter.missileDamage, shooter.missileArmorPiercing, target.armor);
+        return shooters * shooter.missileAccuracy * falloff * damage / Mathf.Max(1f, target.hitPoints);
+    }
 
     // Yöne göre ölüm: vurulan kenara en yakın safta, temas noktasına en yakın hayattaki asker ölür.
     // Saf önceliği (×100) yanal mesafeden her zaman baskın. -1 = ölecek kimse yok.

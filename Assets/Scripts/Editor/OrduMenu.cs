@@ -72,45 +72,10 @@ public static class OrduMenu
         var material = LoadOrCreate(MaterialPath, () =>
             new Material(Shader.Find("Universal Render Pipeline/Lit")) { enableInstancing = true });
 
-        // Değerler sadece ilk oluşturmada yazılır; sonra Inspector'dan dengelenir, menü ezmez.
         var roster = LoadOrCreate(RosterPath, ScriptableObject.CreateInstance<UnitRoster>);
-        roster.units = new[]
-        {
-            Unit("Test_Piyade", material, d => { }),
-            Unit("Okcu", material, d =>
-            {
-                d.unitId = "okcu"; d.displayName = "Okçu";
-                d.soldierCount = 120; d.defaultWidth = 24;
-                d.attack = 6f; d.defense = 6f; d.discipline = 0.9f; d.chargeImpact = 0.03f;
-                d.range = 70f; d.reloadTime = 3f; d.killsPerShot = 0.02f; d.shootingRanks = 0; // sürekli ama zayıf
-            }),
-            Unit("Tufekli", material, d =>
-            {
-                d.unitId = "tufekli"; d.displayName = "Tüfekli";
-                d.soldierCount = 100; d.defaultWidth = 25;
-                d.attack = 5f; d.defense = 5f; d.discipline = 1.3f; d.chargeImpact = 0.03f; // yakında çöker
-                d.range = 50f; d.reloadTime = 18f; d.killsPerShot = 0.25f; d.shootingRanks = 2; // aralıklı, yıkıcı
-                d.firearmMoraleMultiplier = 2f; // barut kuralı
-            }),
-            Unit("Sipahi", material, d =>
-            {
-                d.unitId = "sipahi"; d.displayName = "Sipahi";
-                d.soldierCount = 50; d.defaultWidth = 10; d.slotSpacing = 2f; // atlı, seyrek
-                d.walkSpeed = 4f; d.runSpeed = 9f; d.staminaDrainPerSec = 1f / 30f;
-                d.attack = 12f; d.defense = 8f; d.discipline = 1.1f;
-                d.chargeImpact = 0.15f; // 10 cephe × 9 m/sn × 0,15 ≈ 13 ölü tek darbede
-                d.soldierScale = 1.1f;
-                d.sightRange = 90f; // keşif birimi
-            }),
-            Unit("Kargili", material, d =>
-            {
-                d.unitId = "kargili"; d.displayName = "Kargılı";
-                d.soldierCount = 180; d.defaultWidth = 30;
-                d.walkSpeed = 2.2f; d.runSpeed = 4f;
-                d.attack = 7f; d.defense = 14f; d.chargeImpact = 0.02f;
-                d.antiChargeFront = 0.7f; // önden şarjın %70'i saldırana döner: süvariye duvar
-            }),
-        };
+        roster.units = new UnitDefinition[UnitSpecs.Length];
+        for (int i = 0; i < UnitSpecs.Length; i++)
+            roster.units[i] = Unit(UnitSpecs[i].asset, material, UnitSpecs[i].configure);
         EditorUtility.SetDirty(roster);
 
         var go = new GameObject("Battalion");
@@ -220,12 +185,42 @@ public static class OrduMenu
         Check(MatchRules.Decide(true, true, 80, 120, true) == 1, "süre doldu: çok askeri kalan kazanır");
         Check(MatchRules.Decide(true, true, 50, 50, true) == MatchManager.Draw, "süre doldu, eşit: berabere");
 
+        // Vuruş modeli (Total War)
+        Check(Mathf.Abs(CombatMath.HitChance(30f, 30f) - 0.35f) < 1e-4f, "eşit saldırı/savunma: %35 isabet");
+        Check(CombatMath.HitChance(100f, 0f) == 0.9f && CombatMath.HitChance(0f, 100f) == 0.08f, "isabet %8–%90 arası");
+        Check(Mathf.Abs(CombatMath.DamagePerHit(40f, 0f, 100f) - 10f) < 1e-4f, "tam zırh temel hasarın %75'ini keser");
+        Check(Mathf.Abs(CombatMath.DamagePerHit(40f, 60f, 100f) - 70f) < 1e-4f, "zırh delici kısım hep geçer");
+
+        var spear = ScriptableObject.CreateInstance<UnitDefinition>();
+        spear.meleeAttack = 25f; spear.weaponDamage = 28f; spear.armorPiercing = 8f; spear.bonusVsMounted = 25f;
+        var archer = ScriptableObject.CreateInstance<UnitDefinition>();
+        archer.meleeDefense = 10f; archer.armor = 10f;
+        float spearOnArcher = CombatMath.MeleeKillsPerSec(24, spear, archer);
+        Check(spearOnArcher > 2f && spearOnArcher < 3f, $"kargılı okçuya önden: ~2,4 ölü/sn ({spearOnArcher:F2})");
+        var horse = ScriptableObject.CreateInstance<UnitDefinition>();
+        horse.meleeDefense = 30f; horse.armor = 45f;
+        float vsFoot = CombatMath.MeleeKillsPerSec(10, spear, horse);
+        horse.mounted = true;
+        Check(CombatMath.MeleeKillsPerSec(10, spear, horse) > vsFoot * 1.5f, "kargı atlıya karşı çok daha etkili");
+        Object.DestroyImmediate(spear); Object.DestroyImmediate(archer); Object.DestroyImmediate(horse);
+
+        // Hızlı kayıp şoku
+        Check(Mathf.Abs(Morale.LossShock(0f, 100) - 1f) < 1e-4f && Mathf.Abs(Morale.LossShock(10f, 100) - 1.4f) < 1e-4f,
+            "son 5 sn'de %10 kayıp: her yeni kayıp ×1,4 moral");
+        Check(Mathf.Abs(Morale.DecayRecentLosses(10f, Morale.RecentLossHalfLife) - 5f) < 1e-3f, "son kayıplar yarı ömürde yarıya iner");
+
         // Menzilli
         Check(CombatMath.Shooters(100, 25, 2) == 50, "tüfek: 2 saf × 25 = 50 atıcı");
         Check(CombatMath.Shooters(30, 25, 2) == 30, "atıcı sayısı hayattakileri aşmaz");
         Check(CombatMath.Shooters(120, 24, 0) == 120, "okçu: hepsi atar");
-        Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 0f, 50f) - 12.5f) < 0.01f, "dibinden salvo: 50 × 0,25 = 12,5");
-        Check(Mathf.Abs(CombatMath.VolleyKills(50, 0.25f, 50f, 50f) - 5f) < 0.01f, "menzil sonunda %40");
+        var musket = ScriptableObject.CreateInstance<UnitDefinition>();
+        musket.range = 50f; musket.missileAccuracy = 0.3f; musket.missileDamage = 40f; musket.missileArmorPiercing = 60f;
+        var foot = ScriptableObject.CreateInstance<UnitDefinition>();
+        foot.armor = 20f;
+        float point = CombatMath.VolleyKills(50, musket, foot, 0f);
+        Check(Mathf.Abs(point - 14.1f) < 0.01f, $"tüfek salvosu dibinden piyadeye ~14 ölü ({point:F2})");
+        Check(Mathf.Abs(CombatMath.VolleyKills(50, musket, foot, 50f) - point * 0.4f) < 0.01f, "menzil sonunda %40");
+        Object.DestroyImmediate(musket); Object.DestroyImmediate(foot);
 
         // Ordu kurma ve yerleştirme
         int[] max = { 3, 3, 3, 3, 3 };
@@ -273,6 +268,75 @@ public static class OrduMenu
         Check(!FogRules.Sees(60f + FogRules.Hysteresis + 1f, 60f, true), "payı da aşınca gizlenir");
 
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
+    }
+
+    // Birimler. Değerler sadece ilk oluşturmada yazılır; sonra Inspector'dan dengelenir, menü ezmez.
+    // "Ordu → Denge → Önerilen Birim Değerlerini Uygula" bunları mevcut dosyalara bilerek yeniden yazar.
+    // Yakın dövüş: 0–100 ölçeği, asker canı 100. Kontrol: kargılı okçuya önden ~2,4 ölü/sn (okçu ~15 sn'de kırılır).
+    static readonly (string asset, System.Action<UnitDefinition> configure)[] UnitSpecs =
+    {
+        ("Test_Piyade", d =>
+        {
+            d.unitId = "piyade"; d.displayName = "Piyade";
+            d.meleeAttack = 30f; d.meleeDefense = 30f; d.weaponDamage = 25f; d.armorPiercing = 5f; d.armor = 20f;
+            d.discipline = 0.9f; d.chargeImpact = 0.05f;
+        }),
+        ("Okcu", d =>
+        {
+            d.unitId = "okcu"; d.displayName = "Okçu";
+            d.soldierCount = 120; d.defaultWidth = 24;
+            d.meleeAttack = 15f; d.meleeDefense = 10f; d.weaponDamage = 15f; d.armorPiercing = 0f; d.armor = 10f; // yakında çaresiz
+            d.discipline = 0.7f; d.chargeImpact = 0.03f;
+            d.range = 70f; d.reloadTime = 3f; d.shootingRanks = 0;                         // sürekli
+            d.missileAccuracy = 0.12f; d.missileDamage = 22f; d.missileArmorPiercing = 0f; // zayıf, zırhta erir
+        }),
+        ("Tufekli", d =>
+        {
+            d.unitId = "tufekli"; d.displayName = "Tüfekli";
+            d.soldierCount = 100; d.defaultWidth = 25;
+            d.meleeAttack = 20f; d.meleeDefense = 15f; d.weaponDamage = 20f; d.armorPiercing = 5f; d.armor = 25f; // yakında çöker
+            d.discipline = 1.3f; d.chargeImpact = 0.03f;
+            d.range = 50f; d.reloadTime = 18f; d.shootingRanks = 2;                         // aralıklı
+            d.missileAccuracy = 0.3f; d.missileDamage = 40f; d.missileArmorPiercing = 60f; // yıkıcı, zırh deler
+            d.firearmMoraleMultiplier = 2f; // barut kuralı
+        }),
+        ("Sipahi", d =>
+        {
+            d.unitId = "sipahi"; d.displayName = "Sipahi";
+            d.soldierCount = 50; d.defaultWidth = 10; d.slotSpacing = 2f; // atlı, seyrek
+            d.walkSpeed = 4f; d.runSpeed = 9f; d.staminaDrainPerSec = 1f / 30f;
+            d.meleeAttack = 45f; d.meleeDefense = 30f; d.weaponDamage = 32f; d.armorPiercing = 10f; d.armor = 45f;
+            d.mounted = true; d.discipline = 1.1f;
+            d.chargeImpact = 0.15f; // 10 cephe × 9 m/sn × 0,15 ≈ 13 ölü tek darbede
+            d.soldierScale = 1.1f;
+            d.sightRange = 90f; // keşif birimi
+        }),
+        ("Kargili", d =>
+        {
+            d.unitId = "kargili"; d.displayName = "Kargılı";
+            d.soldierCount = 180; d.defaultWidth = 30;
+            d.walkSpeed = 2.2f; d.runSpeed = 4f;
+            d.meleeAttack = 25f; d.meleeDefense = 40f; d.weaponDamage = 28f; d.armorPiercing = 8f; d.armor = 35f;
+            d.bonusVsMounted = 25f;   // atlıya karşı saldırı ve hasar bonusu
+            d.chargeImpact = 0.02f;
+            d.antiChargeFront = 0.7f; // önden şarjın %70'i saldırana döner: süvariye duvar
+        }),
+    };
+
+    [MenuItem("Ordu/Denge/Önerilen Birim Değerlerini Uygula")]
+    static void ApplyUnitSpecs()
+    {
+        if (!EditorUtility.DisplayDialog("Birim değerleri", "Birim dosyalarındaki savaş değerleri önerilen değerlerle değiştirilecek. Inspector'da yaptığın ayarlar kaybolur.", "Uygula", "Vazgeç"))
+            return;
+        foreach (var (asset, configure) in UnitSpecs)
+        {
+            var def = AssetDatabase.LoadAssetAtPath<UnitDefinition>(UnitsFolder + asset + ".asset");
+            if (def == null) continue;
+            configure(def);
+            EditorUtility.SetDirty(def);
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log("[Ordu] Önerilen birim değerleri uygulandı.");
     }
 
     static UnitDefinition Unit(string name, Material material, System.Action<UnitDefinition> configure)

@@ -48,6 +48,7 @@ public class Battalion : NetworkBehaviour
     bool autoCharge;
     float stamina = 1f;
     float morale = 100f, moraleCeiling = 100f;
+    float recentLosses; // hızlı kayıp şoku için, zamanla söner
     bool bannerLost;
 
     // Sunucu: bu karedeki gerçek hız (şarj darbesi bundan hesaplanır).
@@ -199,7 +200,8 @@ public class Battalion : NetworkBehaviour
         mask.Set(slot, false);
         Alive.Value = mask;
 
-        ServerMoraleHit(Morale.CasualtyLoss(SoldierCount.Value) * moraleMultiplier);
+        ServerMoraleHit(Morale.CasualtyLoss(SoldierCount.Value) * Morale.LossShock(recentLosses, SoldierCount.Value) * moraleMultiplier);
+        recentLosses += 1f;
         if (slot == BannerSlot.Value)
         {
             // Sancak düştü: tek seferlik şok, ön saftan biri devralır.
@@ -214,6 +216,7 @@ public class Battalion : NetworkBehaviour
 
     void UpdateMorale(float dt)
     {
+        recentLosses = Morale.DecayRecentLosses(recentLosses, dt);
         if (IsRouting)
         {
             if (!EnemyWithin(Morale.EnemyNearRadius))

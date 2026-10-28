@@ -23,15 +23,23 @@ MonoBehaviour:
   runSpeed: 4
   formationChangeTime: 4.5
   transitionSpeedFactor: 0.4
-  attack: 7
-  defense: 14
+  meleeAttack: 25
+  meleeDefense: 40
+  weaponDamage: 28
+  armorPiercing: 8
+  armor: 35
+  hitPoints: 100
+  mounted: 0
+  bonusVsMounted: 25
   chargeImpact: 0.02
   antiChargeFront: 0.7
   discipline: 1
   sightRange: 60
   range: 0
   reloadTime: 0
-  killsPerShot: 0
+  missileAccuracy: 0
+  missileDamage: 0
+  missileArmorPiercing: 0
   shootingRanks: 0
   firearmMoraleMultiplier: 1
   staminaDrainPerSec: 0.025
