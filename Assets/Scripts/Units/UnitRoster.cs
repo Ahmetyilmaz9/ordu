@@ -6,4 +6,5 @@ using UnityEngine;
 public class UnitRoster : ScriptableObject
 {
     public UnitDefinition[] units;
+    public Material smokeMaterial; // barut dumanı (bölük başına tek bulut)
 }

@@ -486,6 +486,14 @@ Per-client görünürlük (`NetworkShow` / `NetworkHide`).
 ### M8b — Görsel geçiş
 VAT pipeline, minyon modelleri, duman, LOD.
 
+> **Adım 1 — yapıldı ve test edildi.** Siluet: birim tipine göre yerleşik mesh + oran
+> (`UnitDefinition.soldierShape`, `OrduMenu.Silhouettes`): piyade kapsül, okçu ince kapsül, tüfekli
+> tıknaz silindir, kargılı uzun ince kutu, sipahi uzun gövdeli kutu; gövde takım renginde, askerler
+> bölüğün yönüne, dövüşte rakibine döner. Barut dumanı: tüfek salvosunda bölüğün önünde TEK
+> parçacık bulutu (12 büyük yumuşak kart, 6–9 sn, yükselip söner; materyal `Sprites/Default` +
+> kodla üretilen `SmokePuff.png`). Kestirme: duman henüz görüşü kapatmıyor.
+> Sırada: VAT boru hattı + model (kaynak kararı gerekiyor), ölüm efekti, LOD.
+
 ### M9+ — Topçu
 **Ayrı bir sistem, v1'e girmemeli.** Sabit konum, kurulum süresi, minimum menzil,
 balistik yay, yeniden doldurma, dost ateşi, ayrı mürettebat modeli. Diğer dört

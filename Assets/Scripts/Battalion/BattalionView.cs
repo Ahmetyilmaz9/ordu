@@ -59,8 +59,10 @@ public class BattalionView : MonoBehaviour
         bool fighting = battalion.InCombat.Value && !routing && CollectNearFoes(obb, alive); // kaçan düello yapmaz
         float spread = routing ? 4f : 1f; // kaçarken dağılırlar
 
-        Vector3 up = Vector3.up * def.soldierScale * 0.5f;
-        Vector3 scale = Vector3.one * def.soldierScale;
+        // Siluet: mesh + oran; yere oturt (mesh'in yarı yüksekliği × ölçek).
+        Vector3 scale = def.soldierShape * def.soldierScale;
+        Vector3 up = Vector3.up * def.soldierMesh.bounds.extents.y * scale.y;
+        Quaternion facing = transform.rotation;
         int banner = battalion.BannerSlot.Value;
         int drawn = 0;
         for (int i = 0; i < count; i++)
@@ -72,6 +74,7 @@ public class BattalionView : MonoBehaviour
             Vector3 target = home;
             float speed = def.runSpeed * 1.5f * speedFactor[i];
             bool engaged = false;
+            Quaternion look = facing;
 
             if (fighting)
             {
@@ -87,6 +90,7 @@ public class BattalionView : MonoBehaviour
                     target = foe + away * (DuelDistance + Mathf.Sin(t * 6f + phase[i]) * 0.3f) + side;
                     speed = FightSpeed;
                     engaged = true;
+                    look = Quaternion.LookRotation(-away); // rakibine dön
                 }
                 else target = home + transform.forward * PressForward; // arka saf öne yüklenir
             }
@@ -95,7 +99,7 @@ public class BattalionView : MonoBehaviour
             float bob = marching || engaged || routing ? Mathf.Abs(Mathf.Sin(t * (engaged ? 10f : 8f) + phase[i])) * 0.12f : 0f;
             // Sancaktar büyük çizilir (bayrak modeli M8b'de).
             Vector3 s = i == banner ? scale * 1.8f : scale;
-            matrices[drawn++] = Matrix4x4.TRS(positions[i] + up + Vector3.up * bob, Quaternion.identity, s);
+            matrices[drawn++] = Matrix4x4.TRS(positions[i] + up + Vector3.up * bob, look, s);
         }
         if (volley != null && Time.time > volleyHideTime) volley.enabled = false;
         if (drawn == 0) return;
@@ -184,11 +188,70 @@ public class BattalionView : MonoBehaviour
         volley.SetPositions(new[] { transform.position + lift, target + lift });
         volley.enabled = true;
         volleyHideTime = Time.time + 0.4f;
+        if (battalion.Definition.firearmMoraleMultiplier > 1f) Smoke();
+    }
+
+    // Barut dumanı: asker başına değil, bölüğün önünde TEK bulut (seyrek, büyük kartlar → az overdraw).
+    // shortcut: duman görüşü kapatmıyor; sis mekaniği (dumanın ardını görememe) sonraki iş.
+    ParticleSystem smoke;
+
+    void Smoke()
+    {
+        var material = battalion.Roster.smokeMaterial;
+        if (material == null) return;
+        if (smoke == null) smoke = CreateSmoke(material);
+
+        var half = battalion.HalfExtents(out _);
+        smoke.transform.SetPositionAndRotation(transform.position + transform.forward * (half.y + 2f) + Vector3.up, transform.rotation);
+        var shape = smoke.shape;
+        shape.scale = new Vector3(half.x * 2f, 1f, 2f);
+        smoke.Play();
+    }
+
+    static ParticleSystem CreateSmoke(Material material)
+    {
+        var ps = new GameObject("VolleySmoke").AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        var main = ps.main;
+        main.loop = false;
+        main.playOnAwake = false;
+        main.duration = 0.2f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 9f);
+        main.startSize = new ParticleSystem.MinMaxCurve(5f, 9f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1.2f);
+        main.startColor = new Color(0.85f, 0.85f, 0.82f, 0.8f);
+        main.gravityModifier = -0.02f; // hafifçe yükselir
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.maxParticles = 16;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 12) });
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Box;
+
+        var fade = ps.colorOverLifetime;
+        fade.enabled = true;
+        var gradient = new Gradient();
+        gradient.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(0.85f, 0f), new GradientAlphaKey(0.6f, 0.5f), new GradientAlphaKey(0f, 1f) });
+        fade.color = gradient;
+
+        var grow = ps.sizeOverLifetime;
+        grow.enabled = true;
+        grow.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.7f, 1f, 1.4f));
+
+        ps.GetComponent<ParticleSystemRenderer>().material = material;
+        return ps;
     }
 
     void OnDestroy()
     {
         if (volley != null) Destroy(volley.gameObject);
+        if (smoke != null) Destroy(smoke.gameObject, 9f); // bulut dağılsın
     }
 
     // Etiket: tip + sayı, formasyon, durum, moral çubuğu. Takım rengi; kaçarken yanıp söner.

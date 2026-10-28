@@ -18,3 +18,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cc84cd1c51869174d9c273b7de5df4b8, type: 2}
   - {fileID: 11400000, guid: c0b0e53f728f37f4a9bcf794fc2ce222, type: 2}
   - {fileID: 11400000, guid: 6ae99faa69ef7c74ca022596deb12dcb, type: 2}
+  smokeMaterial: {fileID: 2100000, guid: 4c2758be00f134449a8b2f65895248e8, type: 2}

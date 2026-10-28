@@ -62,4 +62,5 @@ public class UnitDefinition : ScriptableObject
     public Mesh soldierMesh;
     public Material soldierMaterial; // GPU instancing açık olmalı
     public float soldierScale = 0.8f;
+    public Vector3 soldierShape = Vector3.one; // siluet: uzaktan tipi okutan oran (kargı uzun, süvari uzun gövde)
 }

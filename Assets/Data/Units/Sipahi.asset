@@ -44,6 +44,7 @@ MonoBehaviour:
   firearmMoraleMultiplier: 1
   staminaDrainPerSec: 0.033333335
   staminaRegenPerSec: 0.016666668
-  soldierMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  soldierMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   soldierMaterial: {fileID: 2100000, guid: e5504917ab477384fa6785d7cc7af122, type: 2}
   soldierScale: 1.1
+  soldierShape: {x: 0.6363636, y: 1.1818181, z: 1.6363635}

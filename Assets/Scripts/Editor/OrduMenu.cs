@@ -13,6 +13,8 @@ public static class OrduMenu
     const string UnitsFolder = "Assets/Data/Units/";
     const string RosterPath = "Assets/Data/Units/Roster.asset";
     const string MaterialPath = "Assets/Art/Materials/Soldier.mat";
+    const string SmokeMaterialPath = "Assets/Art/Materials/Smoke.mat";
+    const string SmokeTexturePath = "Assets/Art/Textures/SmokePuff.png";
     const string PrefabPath = "Assets/Prefabs/Battalion.prefab";
     const string PrefabListPath = "Assets/DefaultNetworkPrefabs.asset";
 
@@ -76,6 +78,7 @@ public static class OrduMenu
         roster.units = new UnitDefinition[UnitSpecs.Length];
         for (int i = 0; i < UnitSpecs.Length; i++)
             roster.units[i] = Unit(UnitSpecs[i].asset, material, UnitSpecs[i].configure);
+        roster.smokeMaterial = SmokeMaterial();
         EditorUtility.SetDirty(roster);
 
         var go = new GameObject("Battalion");
@@ -323,6 +326,36 @@ public static class OrduMenu
         }),
     };
 
+    // Yumuşak kenarlı duman kartı: kod üretir, PNG olarak kaydeder; materyal Sprites/Default (saydam, her pipeline'da).
+    static Material SmokeMaterial()
+    {
+        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(SmokeTexturePath);
+        if (texture == null)
+        {
+            const int size = 64;
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), new Vector2(size - 1, size - 1) * 0.5f) / (size * 0.5f);
+                float a = Mathf.Clamp01(1f - d);
+                t.SetPixel(x, y, new Color(1f, 1f, 1f, a * a));
+            }
+            EnsureFolder(SmokeTexturePath);
+            System.IO.File.WriteAllBytes(SmokeTexturePath, t.EncodeToPNG());
+            Object.DestroyImmediate(t);
+            AssetDatabase.ImportAsset(SmokeTexturePath);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(SmokeTexturePath);
+            importer.alphaIsTransparency = true;
+            importer.SaveAndReimport();
+            texture = AssetDatabase.LoadAssetAtPath<Texture2D>(SmokeTexturePath);
+        }
+        var material = LoadOrCreate(SmokeMaterialPath, () => new Material(Shader.Find("Sprites/Default")));
+        material.mainTexture = texture;
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
     [MenuItem("Ordu/Denge/Önerilen Birim Değerlerini Uygula")]
     static void ApplyUnitSpecs()
     {
@@ -339,6 +372,18 @@ public static class OrduMenu
         Debug.Log("[Ordu] Önerilen birim değerleri uygulandı.");
     }
 
+    // Siluet (görsel, her kurulumda yazılır): uzaktan tip okunsun. Ölçüler metre (kargı uzun ve ince,
+    // okçu ince, sipahi uzun gövdeli, tüfekli tıknaz). Takım rengi gövdede kalır.
+    static readonly System.Collections.Generic.Dictionary<string, (PrimitiveType mesh, Vector3 size)> Silhouettes =
+        new System.Collections.Generic.Dictionary<string, (PrimitiveType, Vector3)>
+        {
+            { "Test_Piyade", (PrimitiveType.Capsule, new Vector3(0.6f, 1.0f, 0.6f)) },
+            { "Okcu",        (PrimitiveType.Capsule, new Vector3(0.4f, 1.0f, 0.4f)) },
+            { "Tufekli",     (PrimitiveType.Cylinder, new Vector3(0.65f, 0.9f, 0.65f)) },
+            { "Sipahi",      (PrimitiveType.Cube, new Vector3(0.7f, 1.3f, 1.8f)) },
+            { "Kargili",     (PrimitiveType.Cube, new Vector3(0.45f, 1.7f, 0.45f)) },
+        };
+
     static UnitDefinition Unit(string name, Material material, System.Action<UnitDefinition> configure)
     {
         var def = LoadOrCreate(UnitsFolder + name + ".asset", () =>
@@ -347,9 +392,13 @@ public static class OrduMenu
             configure(d);
             return d;
         });
-        var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        def.soldierMesh = sphere.GetComponent<MeshFilter>().sharedMesh; // yerleşik küre mesh'i
-        Object.DestroyImmediate(sphere);
+        var (primitive, size) = Silhouettes.TryGetValue(name, out var s) ? s : (PrimitiveType.Sphere, Vector3.one);
+        var temp = GameObject.CreatePrimitive(primitive);
+        def.soldierMesh = temp.GetComponent<MeshFilter>().sharedMesh; // yerleşik mesh
+        Object.DestroyImmediate(temp);
+        // Hedef boyuta göre oran (yerleşik mesh boyutu: küp 1, kapsül/silindir 1×2×1), soldierScale'e bölünmüş.
+        Vector3 meshSize = def.soldierMesh.bounds.size;
+        def.soldierShape = new Vector3(size.x / meshSize.x, size.y / meshSize.y, size.z / meshSize.z) / def.soldierScale;
         def.soldierMaterial = material;
         EditorUtility.SetDirty(def);
         return def;

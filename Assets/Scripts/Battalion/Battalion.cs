@@ -15,6 +15,7 @@ public class Battalion : NetworkBehaviour
     [SerializeField] UnitRoster roster;
     UnitDefinition definition; // roster[UnitIndex]; spawn'da iki tarafta da aynı asset'ten
     public UnitDefinition Definition => definition;
+    public UnitRoster Roster => roster;
 
     public readonly NetworkVariable<byte> UnitIndex = new NetworkVariable<byte>();
     public readonly NetworkVariable<bool> HoldFire = new NetworkVariable<bool>();
