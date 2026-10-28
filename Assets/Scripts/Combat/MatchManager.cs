@@ -108,7 +108,7 @@ public class MatchManager : NetworkBehaviour
 
             case MatchPhase.Deploy:
                 if (!bothReady && !timeUp) return;
-                spawner.RevealAll();
+                // Gizli bölükler artık FogSystem'e kalır: sadece görüş mesafesindekiler gösterilir.
                 Enter(MatchPhase.Battle, matchDurationSeconds);
                 break;
 

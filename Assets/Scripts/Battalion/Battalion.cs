@@ -176,12 +176,16 @@ public class Battalion : NetworkBehaviour
     public void ServerFired(Vector3 targetPosition)
     {
         ReloadEndTime.Value = NetworkManager.ServerTime.Time + definition.reloadTime;
-        VolleyRpc(targetPosition);
+
+        // Efekt sadece atanı gören istemcilere: görmeyene gitse atanın yerini ele verir.
+        var observers = new List<ulong>();
+        foreach (ulong clientId in NetworkManager.ConnectedClientsIds)
+            if (NetworkObject.IsNetworkVisibleTo(clientId)) observers.Add(clientId);
+        if (observers.Count > 0) VolleyRpc(targetPosition, RpcTarget.Group(observers, RpcTargetUse.Temp));
     }
 
-    // shortcut: bütün istemcilere gider; M7'de sis gelince sadece atanı/hedefi görenlere gönderilecek.
-    [Rpc(SendTo.NotServer)]
-    void VolleyRpc(Vector3 targetPosition) => GetComponent<BattalionView>().ShowVolley(targetPosition);
+    [Rpc(SendTo.SpecifiedInParams)]
+    void VolleyRpc(Vector3 targetPosition, RpcParams rpcParams) => GetComponent<BattalionView>().ShowVolley(targetPosition);
 
     // Sunucu: savaş sistemi bir askeri öldürür (bölüğün ağdan kalkmasını CombatSystem yapar).
     // moraleMultiplier: barut kuralı — tüfekle ölen asker daha çok moral kırar.

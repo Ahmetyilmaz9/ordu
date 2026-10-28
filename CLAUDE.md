@@ -4,7 +4,7 @@
 > projeye sıfırdan dahil olabilmeli. Kararlar değiştikçe bu dosya güncellenmeli.
 
 **Motor:** Unity 6 LTS · **Render:** URP · **Dil:** C#
-**Durum:** M6 tamamlandı (2026-10-28). Sıradaki: M7 — savaş sisi.
+**Durum:** M7 tamamlandı (2026-10-28). Sıradaki: M8 — görsel geçiş.
 
 ---
 
@@ -422,7 +422,7 @@ Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → sav
 > Waiting → ArmySelect (90 sn) → Deploy (60 sn) → Battle (15 dk) → Ended; iki taraf hazırsa süre
 > beklenmez, süre biterse varsayılan ordu. `ArmyRules` (saf): 10 slot, tip başına `maxSlots`
 > (şimdilik hepsi 3), sunucu orduyu doğrular. Yerleştirme: bölükler sadece kendi takımına
-> görünür (`CheckObjectVisibility`, sunucu rakibe göndermez), savaşta `RevealAll` ile açılır;
+> görünür (`CheckObjectVisibility`, sunucu rakibe göndermez), savaşta FogSystem görüşe göre açar (M7);
 > emirler bölge içinde anında konumlar, dizilim geçişi süresiz. Savaş/bot sadece Battle fazında.
 > `MatchUI` (IMGUI): ordu paneli, yerde bölge çizgisi, Hazır, saat, sonuç. Kestirmeler: 3. oyuncu
 > izleyici, kopan oyuncunun takımı boşalmaz (yeniden bağlanma M6b), IMGUI arayüz.
@@ -434,8 +434,17 @@ Hazırlık akışı: ordu kurma (~90 sn) → gizli yerleştirme (~60 sn) → sav
 > sanal oyuncuları sunucu platformunda açılıp 7777 için çakıştı. Build menüsü artık eski platforma
 > döner, editörde rol tespiti `UNITY_SERVER`'a bakmaz. Linux build Unity'ye toolchain paketleri ekledi.
 
-### M7 — Savaş sisi
+### M7 — Savaş sisi ✅
 Per-client görünürlük (`NetworkShow` / `NetworkHide`).
+
+> **Yapıldı ve test edildi.** `Match/FogSystem` (sunucu, 0,2 sn'de bir): takım, kendi
+> bölüklerinden birinin `sightRange`'indeki (varsayılan 60 m, sipahi 90 m) düşmanı görür; gizlemek
+> için 10 m fazlası gerekir (sınırda titreme olmasın). Görülmeyen bölük o oyuncuya `NetworkHide`
+> ile hiç gönderilmez; yeniden görününce NGO baştan doğurur (konum, maske, moral tam gelir).
+> `CheckObjectVisibility` da aynı kuralı söyler (NGO, kural false iken `NetworkShow`'u reddeder).
+> Görmediğine ateş yok (`FogSystem.TeamSees`), salvo efekti sadece atanı görenlere, bot da sise
+> uyar (kimseyi görmezse rakip tarafa ilerler). Maç bitince herkes her şeyi görür.
+> Not: okçu menzili (70) varsayılan görüşten (60) uzun — tam menzil için başka bölük görmeli.
 
 ### M8 — Görsel geçiş
 VAT pipeline, minyon modelleri, duman, LOD.

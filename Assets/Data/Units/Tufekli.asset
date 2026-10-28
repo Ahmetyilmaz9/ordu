@@ -28,6 +28,7 @@ MonoBehaviour:
   chargeImpact: 0.03
   antiChargeFront: 0
   discipline: 1.3
+  sightRange: 60
   range: 50
   reloadTime: 18
   killsPerShot: 0.25

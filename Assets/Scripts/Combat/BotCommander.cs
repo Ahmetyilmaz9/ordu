@@ -27,11 +27,17 @@ public class BotCommander : MonoBehaviour
             float best = float.MaxValue;
             foreach (var other in Battalion.All)
             {
-                if (other.Team.Value == bot.Team.Value) continue;
+                if (other.Team.Value == bot.Team.Value || !FogSystem.TeamSees(bot.Team.Value, other)) continue; // bot da sise uyar
                 float d = (other.transform.position - bot.transform.position).sqrMagnitude;
                 if (d < best) { best = d; target = other; }
             }
-            if (target == null) continue;
+            if (target == null)
+            {
+                // Kimse görünmüyor: rakip tarafa doğru ilerle (keşif).
+                Vector3 ahead = new Vector3(bot.transform.position.x, 0f, bot.Team.Value == 0 ? 60f : -60f);
+                bot.MoveRpc(ahead, ahead - bot.transform.position, 0);
+                continue;
+            }
 
             Vector3 toTarget = target.transform.position - bot.transform.position;
             float distance = toTarget.magnitude;

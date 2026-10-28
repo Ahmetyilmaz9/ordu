@@ -32,6 +32,9 @@ public class UnitDefinition : ScriptableObject
     public float antiChargeFront = 0f;   // önden şarjın bu oranı saldırana geri döner (kargı)
     public float discipline = 1f;        // moral kayıpları buna bölünür (yeniçeri > azap)
 
+    [Header("Görüş")]
+    public float sightRange = 60f; // m; savaş sisinde bu bölüğün gördüğü mesafe
+
     [Header("Menzilli (range 0 = sadece yakın dövüş)")]
     public float range = 0f;                 // m
     public float reloadTime = 0f;            // sn; okçu kısa (sürekli), tüfek uzun (doldurma penceresi)

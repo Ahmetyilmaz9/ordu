@@ -5,7 +5,7 @@ using UnityEngine;
 
 // Sunucu: bağlanan oyunculara takım verir, MatchManager'ın istediği orduyu yerleştirme bölgesine doğurur.
 // İlk bağlanan takım 0 (güney), ikinci takım 1 (kuzey). Bot modunda takım 1 sunucuya ait bot.
-// Yerleştirmede bölükler sadece kendi takımına görünür (sunucu rakibe hiç göndermez); savaşta herkese açılır.
+// Bölükler doğarken sadece kendi takımına görünür; savaşta rakibe FogSystem görüşe göre gösterir/gizler.
 [RequireComponent(typeof(NetworkManager))]
 public class BattalionSpawner : MonoBehaviour
 {
@@ -81,21 +81,14 @@ public class BattalionSpawner : MonoBehaviour
             var pos = new Vector3(-side * layout[i].x, 0f, side * (ArmyRules.DeployFront + 8f + layout[i].y * ArmyRules.RowGap));
             var battalion = Instantiate(battalionPrefab, pos, facing);
             battalion.ServerInit(team, units[i]);
-            battalion.NetworkObject.CheckObjectVisibility = clientId => TeamOf(clientId) == team;
+            // NGO bu kural false derse NetworkShow'u reddeder; o yüzden sisle aynı kural: kendi takımı ya da
+            // takımı görüyor (FogSystem önce seenBy'a ekler, sonra gösterir). Yerleştirmede seenBy boş.
+            battalion.NetworkObject.CheckObjectVisibility = clientId =>
+            {
+                int viewerTeam = TeamOf(clientId);
+                return viewerTeam == team || (viewerTeam >= 0 && FogSystem.TeamSees(viewerTeam, battalion));
+            };
             battalion.NetworkObject.SpawnWithOwnership(teamOwner[team]);
-        }
-    }
-
-    // Savaş başlıyor: gizli bölükleri herkese göster.
-    // shortcut: tam açılma; görüşe göre gösterme/gizleme (savaş sisi) M7'de.
-    public void RevealAll()
-    {
-        foreach (var b in Battalion.All)
-        {
-            var obj = b.NetworkObject;
-            obj.CheckObjectVisibility = null;
-            foreach (ulong clientId in nm.ConnectedClientsIds)
-                if (!obj.IsNetworkVisibleTo(clientId)) obj.NetworkShow(clientId);
         }
     }
 }

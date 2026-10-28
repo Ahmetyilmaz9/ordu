@@ -122,7 +122,7 @@ public class CombatSystem : MonoBehaviour
         killsOnAttacker += impact * brace;
     }
 
-    // Duran, ateşi serbest, dolu bir atıcı önündeki açıda menzildeki en yakın düşmana salvo atar.
+    // Duran, ateşi serbest, dolu bir atıcı önündeki açıda menzildeki, takımının gördüğü en yakın düşmana salvo atar.
     void TryFire(Battalion shooter, List<Battalion> all)
     {
         if (shooter.HoldFire.Value || shooter.IsRouting || shooter.IsReloading || shooter.IsTransitioning
@@ -133,7 +133,7 @@ public class CombatSystem : MonoBehaviour
         float distance = def.range;
         foreach (var t in all)
         {
-            if (t.Team.Value == shooter.Team.Value || t.AliveCount == 0) continue;
+            if (t.Team.Value == shooter.Team.Value || t.AliveCount == 0 || !FogSystem.TeamSees(shooter.Team.Value, t)) continue;
             Vector3 to = t.transform.position - shooter.transform.position;
             to.y = 0f;
             float d = to.magnitude;

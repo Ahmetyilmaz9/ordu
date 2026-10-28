@@ -51,6 +51,7 @@ public static class OrduMenu
         nmGo.AddComponent<CommandInput>();
         nmGo.AddComponent<CombatSystem>();
         nmGo.AddComponent<BotCommander>();
+        nmGo.AddComponent<FogSystem>();
 
         // Maç saati ve zafer: sahneye yerleşik NetworkObject (NetworkManager objesine konamaz).
         var match = new GameObject("Match");
@@ -100,6 +101,7 @@ public static class OrduMenu
                 d.attack = 12f; d.defense = 8f; d.discipline = 1.1f;
                 d.chargeImpact = 0.15f; // 10 cephe × 9 m/sn × 0,15 ≈ 13 ölü tek darbede
                 d.soldierScale = 1.1f;
+                d.sightRange = 90f; // keşif birimi
             }),
             Unit("Kargili", material, d =>
             {
@@ -251,6 +253,11 @@ public static class OrduMenu
         Check(!NetworkBootstrap.TryParseEndpoint("1.2.3", 7777, out _, out _), "eksik IP reddedilir");
         Check(!NetworkBootstrap.TryParseEndpoint("1.2.3.4:0", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("1.2.3.4:99999", 7777, out _, out _), "geçersiz port reddedilir");
         Check(!NetworkBootstrap.TryParseEndpoint("", 7777, out _, out _) && !NetworkBootstrap.TryParseEndpoint("::1", 7777, out _, out _), "boş ve IPv6 reddedilir");
+
+        // Savaş sisi
+        Check(FogRules.Sees(59f, 60f, false) && !FogRules.Sees(61f, 60f, false), "görüş sınırı: 60 m içi görünür, dışı değil");
+        Check(FogRules.Sees(65f, 60f, true) && !FogRules.Sees(65f, 60f, false), "görünen bölük sınırı biraz aşınca hemen kaybolmaz");
+        Check(!FogRules.Sees(60f + FogRules.Hysteresis + 1f, 60f, true), "payı da aşınca gizlenir");
 
         Debug.Log("[Ordu] Savaş matematiği testleri bitti.");
     }
